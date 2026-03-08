@@ -7,7 +7,7 @@
 ## 1. Công việc đã hoàn thành
 |     Thành viên    |    MSSV    | Công việc                | Link Commit/PR |
 |-------------------|------------|--------------------------|----------------|
-| Phạm Hữu Hưng     | 2251052040 | Set up project và github | [8049f06]([link](https://github.com/hungtun/LeaningManagementSystem/commit/8049f060195d1dcc7b3d920e759ff19a7495ef53)) |
+| Phạm Hữu Hưng     | 2251052040 | Set up project và github |[8049f06](https://github.com/hungtun/LeaningManagementSystem/commit/8049f060195d1dcc7b3d920e759ff19a7495ef53) |
 | Đỗ Duy Quốc Khánh | 2251052051 | Thiết kế database        |                |
 | Nguyễn Duy Khang  |            | Phân tích nghiệp vụ      |                |
 ---
