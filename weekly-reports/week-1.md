@@ -9,7 +9,7 @@
 |-------------------|------------|--------------------------|----------------|
 | Phạm Hữu Hưng     | 2251052040 | Set up project và github |[8049f06](https://github.com/hungtun/LeaningManagementSystem/commit/8049f060195d1dcc7b3d920e759ff19a7495ef53) |
 | Đỗ Duy Quốc Khánh | 2251052051 | Thiết kế database        |                |
-| Nguyễn Duy Khang  |            | Phân tích nghiệp vụ      |                |
+| Nguyễn Duy Khang  | 2251052049 | Phân tích nghiệp vụ      |                |
 ---
 ## 2. Tiến độ tổng thể
 | Hạng mục           | Trạng thái   | %    |
@@ -30,6 +30,7 @@
 | Nguyễn Duy Khang  | Frontend Dashboard |
 ---
 ## 4. Khó khăn / Cần hỗ trợ
+
 ---
 *Ngày nộp: 14/03/2026*
 *Xác nhận của Nhóm trưởng: Phạm Hữu Hưng*
