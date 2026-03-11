@@ -1,4 +1,4 @@
-# Tên dự án
+# Learning Management System (LMS)
 
 ## Mô tả
 Bối cảnh: Sau đại dịch COVID-19, nhu cầu học online tăng cao nhưng nhiều tổ chức chưa có platform phù hợp, phải dùng nhiều công cụ rời rạc (Zoom, Drive, Email).
@@ -15,6 +15,7 @@ Giải pháp: Xây dựng LMS cho phép học viên đăng ký khóa học, xem 
 - Frontend: React
 - Database: MySQL
 ## Cài đặt và chạy
+
 ### Yêu cầu
 - Java 21+
 - Node.js 18+ (nếu dùng React)
