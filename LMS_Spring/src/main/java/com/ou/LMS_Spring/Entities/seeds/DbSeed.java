@@ -32,8 +32,11 @@ public class DbSeed implements CommandLineRunner {
         System.out.println("Seeding database...");
         if (isTableEmpty("User")) {
             String password = passwordEncoder.encode("password123");
-            User user = new User("hwngt1412@gmail.com","Pham Huu Hưng", password);
-            
+            User user = new User();
+            user.setEmail("test1@gmail.com");
+            user.setPasswordHash(password);
+            user.setFullName("Test User 1");
+
             userRepository.save(user);
             System.out.println("Database seeded successfully.");
         }
