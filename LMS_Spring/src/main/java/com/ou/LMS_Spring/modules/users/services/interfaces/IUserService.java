@@ -4,6 +4,6 @@ import com.ou.LMS_Spring.modules.users.dtos.requests.LoginRequest;
 import com.ou.LMS_Spring.modules.users.dtos.responses.LoginResponse;
 
 public interface IUserService {
-    LoginResponse login(LoginRequest request);
+    Object authenticate(LoginRequest request);
     
 }
