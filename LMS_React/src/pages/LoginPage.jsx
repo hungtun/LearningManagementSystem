@@ -26,13 +26,25 @@ export default function LoginPage() {
       setSuccessMessage('Đăng nhập thành công')
     } catch (err) {
       const data = err?.data
-      if (data && typeof data === 'object') {
-        const errors = data.errors && typeof data.errors === 'object' ? data.errors : {}
-        setFormErrors(errors)
-        setErrorMessage(data.message || errors.message || 'Đăng nhập thất bại')
+      let message = ''
+      let errors = {}
+
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        errors = (data.errors && typeof data.errors === 'object') ? data.errors : {}
+        message =
+          errors.message ||
+          data.message ||
+          (typeof errors.general === 'string' ? errors.general : null) ||
+          (Object.keys(errors).length > 0 ? Object.values(errors)[0] : '') ||
+          'Đăng nhập thất bại'
+      } else if (typeof data === 'string' && data.trim()) {
+        message = data.trim()
       } else {
-        setErrorMessage('Không thể kết nối máy chủ')
+        message = 'Không thể kết nối máy chủ. Kiểm tra backend đang chạy tại http://localhost:8090'
       }
+
+      setFormErrors(errors)
+      setErrorMessage(message)
     } finally {
       setIsSubmitting(false)
     }

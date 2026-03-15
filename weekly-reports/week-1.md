@@ -1,5 +1,5 @@
 # Báo cáo Tuần 1
-**Tuần:** 1 (08/03/2026 - 14/03/2026)
+**Tuần:** 1 (02/03/2026 - 08/03/2026)
 **Nhóm:** 7
 **Đề tài:** 7 - Learning Management System
 **Nhóm trưởng:** Phạm Hữu Hưng - 2251052040
@@ -25,12 +25,12 @@
 ## 3. Kế hoạch tuần tới
 |  Thành viên       |    Công việc dự kiến       |
 |-------------------|----------------------------|
-| Phạm Hữu Hưng     | Hoàn thành Order Service   |
-| Đỗ Duy Quốc Khánh | API Product Service |
-| Nguyễn Duy Khang  | Frontend Dashboard |
+| Phạm Hữu Hưng     | Hoàn thành User(login&register api)   |
+| Đỗ Duy Quốc Khánh | course, category api |
+| Nguyễn Duy Khang  | Quiz, Assignment api |
 ---
 ## 4. Khó khăn / Cần hỗ trợ
 
 ---
-*Ngày nộp: 14/03/2026*
+*Ngày nộp: 08/03/2026*
 *Xác nhận của Nhóm trưởng: Phạm Hữu Hưng*
