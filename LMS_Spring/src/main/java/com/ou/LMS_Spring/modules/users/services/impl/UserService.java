@@ -16,6 +16,7 @@ import com.ou.LMS_Spring.Services.BaseService;
 import com.ou.LMS_Spring.Services.JwtService;
 import com.ou.LMS_Spring.modules.users.dtos.UserDto;
 import com.ou.LMS_Spring.modules.users.dtos.requests.LoginRequest;
+import com.ou.LMS_Spring.modules.users.dtos.requests.RegisterRequest;
 import com.ou.LMS_Spring.modules.users.dtos.responses.LoginResponse;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
 import com.ou.LMS_Spring.modules.users.services.interfaces.IUserService;
@@ -38,7 +39,6 @@ public class UserService extends BaseService implements IUserService {
     @Override
     public Object authenticate(LoginRequest request) {
         try {
-
             User user = userRepository.findByEmail(request.getEmail()).orElseThrow(()-> new
                 BadCredentialsException("Email or password is incorrect")
             );
@@ -62,5 +62,28 @@ public class UserService extends BaseService implements IUserService {
             ErrorResource errorResource = new ErrorResource("Authentication failed", errorDetails);
             return errorResource;
         }
+    }
+
+    @Override
+    public Object register(RegisterRequest request){
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            Map<String, String> errors = new HashMap<>();
+            errors.put("email", "Email is already in use");
+            return new ErrorResource("Registration failed", errors);
+        }
+
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setFullName(request.getFullName());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+
+        userRepository.save(user);
+
+        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName());
+
+        String token = jwtService.generateToken(user.getId(), user.getEmail());
+
+        return new LoginResponse(token, userDto);
+
     }
 }

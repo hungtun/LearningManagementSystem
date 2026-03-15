@@ -93,17 +93,24 @@
 .formError {
   color: #b00020;
   text-align: center;
+  padding: 10px 12px;
+  background: #ffebee;
+  border: 1px solid #ef5350;
 }
 
 .formSuccess {
   color: #146c2e;
   text-align: center;
+  padding: 10px 12px;
+  background: #e8f5e9;
+  border: 1px solid #66bb6a;
 }
 
 .fieldError {
   color: #b00020;
-  margin-top: 8px;
-  padding-left: 6px;
+  margin-top: 6px;
+  padding-left: 4px;
+  font-size: 14px;
 }
 
 .forgotLink {

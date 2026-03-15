@@ -1,0 +1,13 @@
+package com.ou.LMS_Spring.modules.users.controllers;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    public ResponseEntity<?> getAllUsers() {
+        return ResponseEntity.ok("Get all users");
+    }
+}

@@ -26,8 +26,17 @@ export async function requestJson(path, { method = 'GET', body, token } = {}) {
   })
 
   const contentType = res.headers.get('content-type') || ''
-  const isJson = contentType.includes('application/json')
-  const data = isJson ? await res.json() : await res.text()
+  let data
+  try {
+    const text = await res.text()
+    if (contentType.includes('application/json') || (text && text.startsWith('{'))) {
+      data = JSON.parse(text)
+    } else {
+      data = text || null
+    }
+  } catch (_) {
+    data = null
+  }
 
   if (!res.ok) {
     const error = new Error('Request failed')
@@ -36,6 +45,6 @@ export async function requestJson(path, { method = 'GET', body, token } = {}) {
     throw error
   }
 
-  return data
+  return data === null ? {} : (typeof data === 'object' ? data : {})
 }
 

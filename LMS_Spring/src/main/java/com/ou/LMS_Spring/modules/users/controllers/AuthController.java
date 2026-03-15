@@ -9,11 +9,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ou.LMS_Spring.modules.users.dtos.requests.LoginRequest;
+import com.ou.LMS_Spring.modules.users.dtos.requests.RegisterRequest;
 import com.ou.LMS_Spring.modules.users.dtos.responses.LoginResponse;
 import com.ou.LMS_Spring.modules.users.services.interfaces.IUserService;
 import com.ou.LMS_Spring.resources.ErrorResource;
 
 import jakarta.validation.Valid;
+import lombok.val;
 
 
 @Validated
@@ -43,5 +45,15 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Network Error");
     }
 
-
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        Object result = userService.register(request);
+        if (result instanceof LoginResponse loginResponse) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(loginResponse);
+        }
+        if (result instanceof ErrorResource errorResource) {
+            return ResponseEntity.unprocessableContent().body(errorResource);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Network Error");
+    }
 }
