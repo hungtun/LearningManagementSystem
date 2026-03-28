@@ -15,7 +15,6 @@ import com.ou.LMS_Spring.modules.users.services.interfaces.IUserService;
 import com.ou.LMS_Spring.resources.ErrorResource;
 
 import jakarta.validation.Valid;
-import lombok.val;
 
 
 @Validated

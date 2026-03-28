@@ -36,7 +36,7 @@ public class DbSeed implements CommandLineRunner {
             user.setEmail("test1@gmail.com");
             user.setPasswordHash(password);
             user.setFullName("Test User 1");
-
+   
             userRepository.save(user);
             System.out.println("Database seeded successfully.");
         }
