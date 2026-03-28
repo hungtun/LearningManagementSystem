@@ -13,7 +13,4 @@ public class ErrorResource {
         this.message = message;
         this.errors = errors;
     }
-
-    
-
 }

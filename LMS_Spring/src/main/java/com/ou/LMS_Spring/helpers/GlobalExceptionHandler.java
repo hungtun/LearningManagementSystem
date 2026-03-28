@@ -23,11 +23,8 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-
         ErrorResource errorResource = new ErrorResource("Validation failed", errors);
 
         return new ResponseEntity<>(errorResource, HttpStatus.UNPROCESSABLE_CONTENT);
     }
-
-
 }
