@@ -2,7 +2,6 @@ package com.ou.LMS_Spring.Entities.seeds;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties.Apiversion.Use;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,7 @@ public class DbSeed implements CommandLineRunner {
 
     @PersistenceContext
     private EntityManager entityManager;
-    
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -40,7 +39,7 @@ public class DbSeed implements CommandLineRunner {
             userRepository.save(user);
             System.out.println("Database seeded successfully.");
         }
-        
+
     }
 
     private boolean isTableEmpty(String tableName) {
