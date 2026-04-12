@@ -1,9 +1,10 @@
 package com.ou.LMS_Spring.modules.users.services.interfaces;
 
-import com.ou.LMS_Spring.modules.users.dtos.requests.LoginRequest;
-import com.ou.LMS_Spring.modules.users.dtos.requests.RegisterRequest;
+import com.ou.LMS_Spring.modules.users.dtos.UserDto;
+import com.ou.LMS_Spring.modules.users.dtos.requests.UpdateMeRequest;
 
 public interface IUserService {
-    Object authenticate(LoginRequest request);
-    Object register(RegisterRequest request);
+    
+    UserDto getCurrentUserProfile();
+    UserDto updateCurrentUserProfile(UpdateMeRequest request);
 }

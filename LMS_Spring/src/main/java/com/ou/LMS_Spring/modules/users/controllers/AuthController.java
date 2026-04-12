@@ -11,48 +11,30 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ou.LMS_Spring.modules.users.dtos.requests.LoginRequest;
 import com.ou.LMS_Spring.modules.users.dtos.requests.RegisterRequest;
 import com.ou.LMS_Spring.modules.users.dtos.responses.LoginResponse;
-import com.ou.LMS_Spring.modules.users.services.interfaces.IUserService;
-import com.ou.LMS_Spring.resources.ErrorResource;
+import com.ou.LMS_Spring.modules.users.services.interfaces.IAuthService;
+import com.ou.LMS_Spring.resources.SuccessResource;
 
 import jakarta.validation.Valid;
-
+import lombok.RequiredArgsConstructor;
 
 @Validated
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    private final IUserService userService;
-
-    public AuthController(IUserService userService) {
-        this.userService = userService;
-
-    }
+    private final IAuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-
-        Object result = userService.authenticate(request);
-        if (result instanceof LoginResponse loginResponse) {
-            return ResponseEntity.ok(loginResponse);
-        }
-
-        if (result instanceof ErrorResource errorResource) {
-            return ResponseEntity.unprocessableContent().body(errorResource);
-            
-        }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Network Error");
+    public ResponseEntity<SuccessResource<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse body = authService.authenticate(request);
+        return ResponseEntity.ok(new SuccessResource<>("SUCCESS", body));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        Object result = userService.register(request);
-        if (result instanceof LoginResponse loginResponse) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(loginResponse);
-        }
-        if (result instanceof ErrorResource errorResource) {
-            return ResponseEntity.unprocessableContent().body(errorResource);
-        }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Network Error");
+    public ResponseEntity<SuccessResource<LoginResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        LoginResponse body = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new SuccessResource<>("CREATED", body));
     }
 }
