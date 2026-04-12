@@ -1,0 +1,42 @@
+package com.ou.LMS_Spring.modules.courses.dtos.responses;
+
+import com.ou.LMS_Spring.Entities.Lesson;
+
+public class LessonOutlineResponse {
+
+    private Long id;
+    private String title;
+    private int orderIndex;
+
+    public static LessonOutlineResponse from(Lesson lesson) {
+        LessonOutlineResponse r = new LessonOutlineResponse();
+        r.setId(lesson.getId());
+        r.setTitle(lesson.getTitle());
+        r.setOrderIndex(lesson.getOrderIndex());
+        return r;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public int getOrderIndex() {
+        return orderIndex;
+    }
+
+    public void setOrderIndex(int orderIndex) {
+        this.orderIndex = orderIndex;
+    }
+}

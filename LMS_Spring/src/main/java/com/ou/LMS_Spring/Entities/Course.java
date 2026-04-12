@@ -5,6 +5,8 @@ import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -28,6 +30,13 @@ public class Course extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id")
     private User instructor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CoursePublicationStatus publicationStatus = CoursePublicationStatus.DRAFT;
+
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
 
     @OneToMany(mappedBy = "course")
     private List<Lesson> lessons = new ArrayList<>();
@@ -82,6 +91,22 @@ public class Course extends BaseEntity {
 
     public void setEnrollments(List<Enrollment> enrollments) {
         this.enrollments = enrollments;
+    }
+
+    public CoursePublicationStatus getPublicationStatus() {
+        return publicationStatus;
+    }
+
+    public void setPublicationStatus(CoursePublicationStatus publicationStatus) {
+        this.publicationStatus = publicationStatus;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 }
 
