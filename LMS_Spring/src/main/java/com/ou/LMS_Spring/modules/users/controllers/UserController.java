@@ -2,41 +2,44 @@ package com.ou.LMS_Spring.modules.users.controllers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.modules.users.dtos.UserDto;
-import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
+import com.ou.LMS_Spring.modules.users.dtos.requests.UpdateMeRequest;
+import com.ou.LMS_Spring.modules.users.services.interfaces.IUserService;
 import com.ou.LMS_Spring.resources.SuccessResource;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
     
-    @Autowired
-    private UserRepository userRepository;
+    private IUserService userService;
 
-     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
+    public UserController
+    (
+        IUserService userService
+    ) {
+        this.userService = userService;
+    }
 
     @GetMapping("/me")
-    public ResponseEntity me(){
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(()-> new RuntimeException("User not exist"));
+    public ResponseEntity<SuccessResource<UserDto>> me(){
+        UserDto userDto = userService.getCurrentUserProfile();
+        return ResponseEntity.ok(new SuccessResource<>("SUCCESS", userDto));
+    }
 
-        UserDto userDto = UserDto.builder()
-            .id(user.getId())
-            .email(user.getEmail())
-            .fullName(user.getFullName())
-            .build();
-
-        SuccessResource<UserDto> response = new SuccessResource<UserDto>("SUCCESS", userDto);
-
-        return ResponseEntity.ok(response);
+    @PutMapping("/me")
+    public ResponseEntity<SuccessResource<UserDto>> updateMe(@Valid @RequestBody UpdateMeRequest request){
+        UserDto userDto = userService.updateCurrentUserProfile(request);
+        return ResponseEntity.ok(new SuccessResource<>("SUCCESS", userDto));
     }
 }

@@ -29,12 +29,10 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
             // Routes AUTH - No JWT
-            .requestMatchers(
-                "/api/auth/login"
-            ).permitAll()
-            .requestMatchers(
-                "/api/product"
-            ).permitAll()
+            .requestMatchers("/api/auth/**").permitAll()
+            .requestMatchers("/api/enrollments/course/*/students").hasAnyRole("INSTRUCTOR","ADMIN")
+            .requestMatchers("/api/admin/**",
+                                        "/api/enrollments/stats" ).hasRole("ADMIN")
             .anyRequest().authenticated()
         )
         .sessionManagement(sesson-> sesson

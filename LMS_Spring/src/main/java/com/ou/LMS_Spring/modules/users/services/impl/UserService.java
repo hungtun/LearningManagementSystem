@@ -1,89 +1,44 @@
 package com.ou.LMS_Spring.modules.users.services.impl;
 
-import java.util.HashMap;
-import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.Services.BaseService;
-import com.ou.LMS_Spring.Services.JwtService;
 import com.ou.LMS_Spring.modules.users.dtos.UserDto;
-import com.ou.LMS_Spring.modules.users.dtos.requests.LoginRequest;
-import com.ou.LMS_Spring.modules.users.dtos.requests.RegisterRequest;
-import com.ou.LMS_Spring.modules.users.dtos.responses.LoginResponse;
+import com.ou.LMS_Spring.modules.users.dtos.requests.UpdateMeRequest;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
 import com.ou.LMS_Spring.modules.users.services.interfaces.IUserService;
-import com.ou.LMS_Spring.resources.ErrorResource;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class UserService extends BaseService implements IUserService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-    
-    @Autowired
-    private JwtService jwtService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private User currentUser(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    @Autowired
-    private UserRepository userRepository;
-
+        return userRepository.findByEmail(email).orElseThrow(()->new IllegalStateException("User not found"));
+    }
     @Override
-    public Object authenticate(LoginRequest request) {
-        try {
-            User user = userRepository.findByEmail(request.getEmail()).orElseThrow(()-> new
-                BadCredentialsException("Email or password is incorrect")
-            );
-
-            if(!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())){
-                throw new BadCredentialsException("Email or password is incorrect");
-            }
-           
-            UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName());
-
-            String token = jwtService.generateToken(user.getId(), user.getEmail());
-
-            return new LoginResponse(token, userDto);        
-            
-        } catch (BadCredentialsException e) {
-            logger.error("Authentication error: {}", e.getMessage());
-
-            Map<String, String> errorDetails = new HashMap<>();
-            errorDetails.put("message", e.getMessage());
-
-            ErrorResource errorResource = new ErrorResource("Authentication failed", errorDetails);
-            return errorResource;
-        }
+    @Transactional(readOnly = true)
+    public UserDto getCurrentUserProfile(){
+        User u = currentUser();
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName());
     }
 
     @Override
-    public Object register(RegisterRequest request){
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            Map<String, String> errors = new HashMap<>();
-            errors.put("email", "Email is already in use");
-            return new ErrorResource("Registration failed", errors);
-        }
-
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setFullName(request.getFullName());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
-        userRepository.save(user);
-
-        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName());
-
-        String token = jwtService.generateToken(user.getId(), user.getEmail());
-
-        return new LoginResponse(token, userDto);
-
+    @Transactional
+    public UserDto updateCurrentUserProfile(UpdateMeRequest request){
+        User u = currentUser();
+        u.setFullName(request.getFullName().trim());
+        userRepository.save(u);
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName());
     }
+
+
 }
