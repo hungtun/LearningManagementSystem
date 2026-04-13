@@ -15,7 +15,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     List<Enrollment> findByUser_IdOrderByEnrolledAtDesc(Long userId);
     List<Enrollment> findByCourse_IdOrderByEnrolledAtDesc(Long courseId);
-
+    long countByCourse_Id(Long courseId);
     @Query(value = """
         SELECT DATE(e.enrolled_at) AS day, COUNT(*) AS cnt
         FROM enrollments e

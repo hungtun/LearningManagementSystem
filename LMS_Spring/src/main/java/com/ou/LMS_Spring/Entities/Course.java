@@ -3,15 +3,10 @@ package com.ou.LMS_Spring.Entities;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "courses")
@@ -24,7 +19,7 @@ public class Course extends BaseEntity {
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = true)
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -44,6 +39,12 @@ public class Course extends BaseEntity {
     @OneToMany(mappedBy = "course")
     private List<Enrollment> enrollments = new ArrayList<>();
 
+    
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Quiz> quizzes = new ArrayList<>();
+
+    // ===================== GET SET =====================
 
     public String getTitle() {
         return title;
@@ -108,5 +109,13 @@ public class Course extends BaseEntity {
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
     }
-}
 
+    
+    public List<Quiz> getQuizzes() {
+        return quizzes;
+    }
+
+    public void setQuizzes(List<Quiz> quizzes) {
+        this.quizzes = quizzes;
+    }
+}

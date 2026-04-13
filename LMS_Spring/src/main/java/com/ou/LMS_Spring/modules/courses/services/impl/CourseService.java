@@ -26,7 +26,7 @@ import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonDetailResponse;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonOutlineResponse;
 import com.ou.LMS_Spring.modules.courses.repositories.CategoryRepository;
 import com.ou.LMS_Spring.modules.courses.repositories.CourseRepository;
-import com.ou.LMS_Spring.modules.courses.repositories.EnrollmentRepository;
+import com.ou.LMS_Spring.modules.enrollments.repositories.EnrollmentRepository;
 import com.ou.LMS_Spring.modules.courses.repositories.LessonRepository;
 import com.ou.LMS_Spring.modules.courses.services.interfaces.ICourseService;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
