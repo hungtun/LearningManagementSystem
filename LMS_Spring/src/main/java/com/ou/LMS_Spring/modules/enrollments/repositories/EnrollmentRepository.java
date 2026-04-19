@@ -11,6 +11,9 @@ import com.ou.LMS_Spring.Entities.Enrollment;
 
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
+
+    long countByCourse_Id(Long courseId);
+
     boolean existsByUser_IdAndCourse_Id(Long userId, Long courseId);
 
     List<Enrollment> findByUser_IdOrderByEnrolledAtDesc(Long userId);
