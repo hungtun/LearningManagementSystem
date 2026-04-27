@@ -21,7 +21,6 @@ import com.ou.LMS_Spring.modules.users.repositories.RoleRepository;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
 import com.ou.LMS_Spring.modules.users.services.interfaces.IAdminUserService;
 
-import lombok.RequiredArgsConstructor;
 
 @Service
 public class AdminUserService extends BaseService implements IAdminUserService  {

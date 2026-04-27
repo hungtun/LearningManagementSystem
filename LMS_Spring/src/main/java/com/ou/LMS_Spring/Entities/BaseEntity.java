@@ -2,6 +2,9 @@ package com.ou.LMS_Spring.Entities;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import jakarta.persistence.*;
 
 
@@ -14,8 +17,9 @@ public class BaseEntity {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
     private boolean isActive = true;
 
+    @CreationTimestamp
     private LocalDateTime createdAt;
-    
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
     @PrePersist

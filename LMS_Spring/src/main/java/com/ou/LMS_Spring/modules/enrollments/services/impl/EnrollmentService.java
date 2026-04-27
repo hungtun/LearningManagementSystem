@@ -3,12 +3,9 @@ package com.ou.LMS_Spring.modules.enrollments.services.impl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,7 +16,10 @@ import com.ou.LMS_Spring.Entities.Course;
 import com.ou.LMS_Spring.Entities.Enrollment;
 import com.ou.LMS_Spring.Entities.EnrollmentStatus;
 import com.ou.LMS_Spring.Entities.User;
-import com.ou.LMS_Spring.helpers.ApiBusinessException;
+import com.ou.LMS_Spring.helpers.exceptions.AlreadyEnrolledException;
+import com.ou.LMS_Spring.helpers.exceptions.CourseNotFoundException;
+import com.ou.LMS_Spring.helpers.exceptions.CourseRosterForbiddenException;
+import com.ou.LMS_Spring.helpers.exceptions.UserNotFoundException;
 import com.ou.LMS_Spring.modules.courses.repositories.CourseRepository;
 import com.ou.LMS_Spring.modules.enrollments.dtos.requests.EnrollmentRequest;
 import com.ou.LMS_Spring.modules.enrollments.dtos.responses.CourseStudentResponse;
@@ -29,15 +29,12 @@ import com.ou.LMS_Spring.modules.enrollments.dtos.responses.MyCourseItemResponse
 import com.ou.LMS_Spring.modules.enrollments.repositories.EnrollmentRepository;
 import com.ou.LMS_Spring.modules.enrollments.services.interfaces.IEnrollmentService;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
-import com.ou.LMS_Spring.resources.ErrorResource;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class EnrollmentService implements IEnrollmentService {
-
-    private static final String ERR_CODE = "code";
 
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
@@ -50,10 +47,10 @@ public class EnrollmentService implements IEnrollmentService {
 
         Long courseId = request.getCourseId();
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> courseNotFound(courseId));
+                .orElseThrow(() -> new CourseNotFoundException(courseId));
 
         if (enrollmentRepository.existsByUser_IdAndCourse_Id(user.getId(), course.getId())) {
-            throw alreadyEnrolled();
+            throw new AlreadyEnrolledException();
         }
 
         Enrollment enrollment = new Enrollment();
@@ -91,9 +88,9 @@ public class EnrollmentService implements IEnrollmentService {
     public List<CourseStudentResponse> listStudentsForCourse(Long courseId) {
         User me = currentUser();
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> courseNotFound(courseId));
+                .orElseThrow(() -> new CourseNotFoundException(courseId));
         if (!canAccessCourseRoster(me, course)) {
-            throw rosterForbidden();
+            throw new CourseRosterForbiddenException();
         }
         return enrollmentRepository.findByCourse_IdOrderByEnrolledAtDesc(courseId).stream()
                 .map(e -> {
@@ -128,7 +125,7 @@ public class EnrollmentService implements IEnrollmentService {
     private User currentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException());
     }
 
     private boolean canAccessCourseRoster(User me, Course course) {
@@ -150,26 +147,5 @@ public class EnrollmentService implements IEnrollmentService {
         }
         User instructor = course.getInstructor();
         return instructor != null && instructor.getId().equals(me.getId());
-    }
-
-    private static ApiBusinessException courseNotFound(Long courseId) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put(ERR_CODE, "COURSE_NOT_FOUND");
-        errors.put("courseId", "No course with this id");
-        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("Course not found", errors));
-    }
-
-    private static ApiBusinessException alreadyEnrolled() {
-        Map<String, String> errors = new HashMap<>();
-        errors.put(ERR_CODE, "ALREADY_ENROLLED");
-        errors.put("message", "Already enrolled in this course");
-        return new ApiBusinessException(HttpStatus.CONFLICT, new ErrorResource("Already enrolled", errors));
-    }
-
-    private static ApiBusinessException rosterForbidden() {
-        Map<String, String> errors = new HashMap<>();
-        errors.put(ERR_CODE, "FORBIDDEN");
-        errors.put("message", "Not allowed to view this course roster");
-        return new ApiBusinessException(HttpStatus.FORBIDDEN, new ErrorResource("Forbidden", errors));
     }
 }

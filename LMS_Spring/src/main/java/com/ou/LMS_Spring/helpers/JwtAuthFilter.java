@@ -100,6 +100,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
+            if(jwtService.isTokenBlacklisted(jwt)) {
+                sendErrorResponse(
+                        response,
+                        request,
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Unauthorized",
+                        "Token has been blacklisted");
+                return;
+            }
+
             userId = jwtService.getUserIdFromJwt(jwt);
             if (userId == null || userId.isBlank()) {
                 sendErrorResponse(
@@ -110,6 +120,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         "Invalid token subject");
                 return;
             }
+
+
 
             // Always set JWT authentication when the token is valid. Spring Security often
             // pre-populates an AnonymousAuthenticationToken (not null), which previously

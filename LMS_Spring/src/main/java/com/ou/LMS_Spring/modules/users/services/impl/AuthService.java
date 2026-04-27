@@ -6,12 +6,12 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.Services.BaseService;
@@ -33,9 +33,9 @@ public class AuthService extends BaseService implements IAuthService {
     
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private static final String CODE = "code";
-    private JwtService jwtService;
-    private PasswordEncoder passwordEncoder;
-    private UserRepository userRepository;
+    private final JwtService jwtService;
+    private  final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
 
     @Override
     public LoginResponse authenticate(LoginRequest request) {
@@ -70,6 +70,9 @@ public class AuthService extends BaseService implements IAuthService {
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         return new LoginResponse(token, userDto);
     }
+
+  
+
     private ApiBusinessException accountDisabled() {
         Map<String, String> errors = new HashMap<>();
         errors.put(CODE, "ACCOUNT_DISABLED");
@@ -84,4 +87,6 @@ public class AuthService extends BaseService implements IAuthService {
         return new ApiBusinessException(HttpStatus.CONFLICT,
                 new ErrorResource("Registration failed", errors));
     }
+
+    
 }

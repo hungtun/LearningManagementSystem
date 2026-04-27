@@ -50,13 +50,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResource> handleIllegalState(IllegalStateException ex) {
-        if ("User not found".equals(ex.getMessage())) {
-            Map<String, String> errors = new HashMap<>();
-            errors.put(CODE, "USER_NOT_FOUND");
-            errors.put("message", ex.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResource("User not found", errors));
-        }
         Map<String, String> errors = new HashMap<>();
         errors.put("message", ex.getMessage() != null ? ex.getMessage() : "Unexpected error");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

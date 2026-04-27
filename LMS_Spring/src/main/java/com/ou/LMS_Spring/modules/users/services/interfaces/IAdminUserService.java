@@ -8,9 +8,14 @@ import com.ou.LMS_Spring.modules.users.dtos.requests.AdminUpdateUserRequest;
 import com.ou.LMS_Spring.modules.users.dtos.responses.AdminUserResponse;
 
 public interface IAdminUserService {
+
     List<AdminUserResponse> listAll();
-    AdminUserResponse create(AdminCreateUserResquest resquest);
+
+    AdminUserResponse create(AdminCreateUserResquest request);
+
     AdminUserResponse update(Long id, AdminUpdateUserRequest request);
+
     void softDelete(Long id);
-    AdminUserResponse changeRole (Long id, AdminPatchRoleRequest request);  
-} 
+
+    AdminUserResponse changeRole(Long id, AdminPatchRoleRequest request);
+}

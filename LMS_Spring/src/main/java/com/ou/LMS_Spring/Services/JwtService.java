@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.ou.LMS_Spring.config.JwtConfig;
+import com.ou.LMS_Spring.modules.users.repositories.BlacklistedTokenRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -23,12 +24,14 @@ import io.jsonwebtoken.security.SignatureException;
 public class JwtService {
     private final JwtConfig jwtConfig;
     private final Key key;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
 
 
-    public JwtService(JwtConfig jwtConfig) {
+    public JwtService(JwtConfig jwtConfig, BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtConfig = jwtConfig;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
         this.key = Keys.hmacShaKeyFor(Base64.getEncoder().encode(jwtConfig.getSecretKey().getBytes()));
     }
 
@@ -102,16 +105,22 @@ public class JwtService {
         }
     }
 
-    private <T> T getClaimFromToken(String token, Function<Claims,T> claimsResolver){
+    public boolean isTokenBlacklisted(String token) {
+        return blacklistedTokenRepository.existsByToken(token);
+    }
+
+    public <T> T getClaimFromToken(String token, Function<Claims,T> claimsResolver){
         final Claims claims = getAllClaimsFromToken(token);
         return claimsResolver.apply(claims);
     }
     
-    private Claims getAllClaimsFromToken(String token) {
+    public Claims getAllClaimsFromToken(String token) {
         return Jwts.parserBuilder()
         .setSigningKey(getSigningKey())
         .build()
         .parseClaimsJws(token)
         .getBody();
     }
+
+
 }
