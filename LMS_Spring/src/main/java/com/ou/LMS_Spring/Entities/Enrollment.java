@@ -35,7 +35,5 @@ public class Enrollment extends BaseEntity {
 
     @Column(nullable = false)
     private LocalDateTime enrolledAt = LocalDateTime.now();
-
-    
 }
 

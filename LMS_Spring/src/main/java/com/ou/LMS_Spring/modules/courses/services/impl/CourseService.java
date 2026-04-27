@@ -2,7 +2,6 @@ package com.ou.LMS_Spring.modules.courses.services.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -10,7 +9,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
 import com.ou.LMS_Spring.Entities.Category;
 import com.ou.LMS_Spring.Entities.Course;
 import com.ou.LMS_Spring.Entities.CoursePublicationStatus;

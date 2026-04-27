@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ou.LMS_Spring.Entities.User;
+import com.ou.LMS_Spring.helpers.exceptions.UserNotFoundException;
 import com.ou.LMS_Spring.Services.BaseService;
 import com.ou.LMS_Spring.modules.users.dtos.UserDto;
 import com.ou.LMS_Spring.modules.users.dtos.requests.UpdateMeRequest;
@@ -22,7 +23,7 @@ public class UserService extends BaseService implements IUserService {
     private User currentUser(){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        return userRepository.findByEmail(email).orElseThrow(()->new IllegalStateException("User not found"));
+        return userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException());
     }
     @Override
     @Transactional(readOnly = true)

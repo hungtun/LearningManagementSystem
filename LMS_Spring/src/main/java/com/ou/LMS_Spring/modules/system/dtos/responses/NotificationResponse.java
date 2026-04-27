@@ -1,0 +1,40 @@
+package com.ou.LMS_Spring.modules.system.dtos.responses;
+
+import java.time.LocalDateTime;
+
+public class NotificationResponse {
+
+    private Long id;
+    private String title;
+    private String content;
+    private boolean broadcast;
+    private LocalDateTime createdAt;
+
+    public NotificationResponse(Long id, String title, String content, boolean broadcast, LocalDateTime createdAt) {
+        this.id = id;
+        this.title = title;
+        this.content = content;
+        this.broadcast = broadcast;
+        this.createdAt = createdAt;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public boolean isBroadcast() {
+        return broadcast;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+}

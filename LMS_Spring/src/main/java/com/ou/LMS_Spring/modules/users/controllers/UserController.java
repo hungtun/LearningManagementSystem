@@ -1,7 +1,5 @@
 package com.ou.LMS_Spring.modules.users.controllers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -21,8 +19,6 @@ import jakarta.validation.Valid;
 public class UserController {
     
     private IUserService userService;
-
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     public UserController
     (

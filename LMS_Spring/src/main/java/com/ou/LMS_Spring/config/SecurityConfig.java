@@ -31,6 +31,8 @@ public class SecurityConfig {
             // Routes AUTH - No JWT
             .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/api/enrollments/course/*/students").hasAnyRole("INSTRUCTOR","ADMIN")
+            .requestMatchers("/api/system/analytics/instructor").hasAnyRole("INSTRUCTOR","ADMIN")
+            .requestMatchers("/api/system/analytics/admin").hasRole("ADMIN")
             .requestMatchers("/api/admin/**",
                                         "/api/enrollments/stats" ).hasRole("ADMIN")
             .anyRequest().authenticated()
