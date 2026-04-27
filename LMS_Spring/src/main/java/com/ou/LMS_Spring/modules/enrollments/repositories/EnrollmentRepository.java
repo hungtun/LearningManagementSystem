@@ -29,7 +29,5 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Object[]> countEnrollmentsByDay(@Param("from") java.time.LocalDateTime from,
                                         @Param("to") java.time.LocalDateTime to);
     
-    long countByCourse_Id(Long courseId);
-
     long countByCourse_Instructor_Id(Long instructorId);
 }
