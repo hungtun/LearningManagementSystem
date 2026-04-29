@@ -1,13 +1,15 @@
 import { useId, useState } from 'react'
-import { login } from '../api/auth.js'
+import { login, register } from '../api/auth.js'
 import { setToken } from '../api/http.js'
 import './LoginPage.css'
 
-export default function LoginPage() {
+export default function LoginPage({ onLoginSuccess }) {
   const emailId = useId()
   const passwordId = useId()
+  const fullNameId = useId()
 
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [authMode, setAuthMode] = useState('login')
+  const [form, setForm] = useState({ email: '', password: '', fullName: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState({})
   const [errorMessage, setErrorMessage] = useState('')
@@ -21,9 +23,17 @@ export default function LoginPage() {
     setSuccessMessage('')
 
     try {
-      const res = await login(form)
+      const res =
+        authMode === 'login'
+          ? await login({ email: form.email, password: form.password })
+          : await register({
+              email: form.email,
+              password: form.password,
+              fullName: form.fullName,
+            })
       if (res?.token) setToken(res.token)
-      setSuccessMessage('Đăng nhập thành công')
+      onLoginSuccess?.(res?.user ?? null)
+      setSuccessMessage(authMode === 'login' ? 'Đăng nhập thành công' : 'Đăng ký thành công')
     } catch (err) {
       const data = err?.data
       let message = ''
@@ -36,7 +46,7 @@ export default function LoginPage() {
           data.message ||
           (typeof errors.general === 'string' ? errors.general : null) ||
           (Object.keys(errors).length > 0 ? Object.values(errors)[0] : '') ||
-          'Đăng nhập thất bại'
+          (authMode === 'login' ? 'Đăng nhập thất bại' : 'Đăng ký thất bại')
       } else if (typeof data === 'string' && data.trim()) {
         message = data.trim()
       } else {
@@ -54,16 +64,47 @@ export default function LoginPage() {
     <main className="loginScreen">
       <section className="loginCard" aria-label="Login">
         <header className="loginHeader">
-          <h1 className="loginTitle">ĐĂNG NHẬP</h1>
+          <h1 className="loginTitle">{authMode === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ'}</h1>
           <p className="loginSubtitle">
-            Nếu bạn chưa có tài khoản, đăng ký{' '}
-            <a className="loginLink" href="#">
-              tại đây
-            </a>
+            {authMode === 'login' ? 'Nếu bạn chưa có tài khoản' : 'Nếu bạn đã có tài khoản'}
+            <button
+              className="loginLinkButton"
+              type="button"
+              onClick={() => {
+                setAuthMode(authMode === 'login' ? 'register' : 'login')
+                setFormErrors({})
+                setErrorMessage('')
+                setSuccessMessage('')
+              }}
+            >
+              {authMode === 'login' ? ' Đăng ký tại đây' : ' Đăng nhập tại đây'}
+            </button>
           </p>
         </header>
 
         <form className="loginForm" onSubmit={onSubmit}>
+          {authMode === 'register' ? (
+            <div className="field">
+              <label className="srOnly" htmlFor={fullNameId}>
+                Họ tên
+              </label>
+              <input
+                id={fullNameId}
+                className="input"
+                type="text"
+                placeholder="Họ và tên"
+                value={form.fullName}
+                onChange={(e) => setForm((s) => ({ ...s, fullName: e.target.value }))}
+                required
+              />
+              {formErrors.fullName ? (
+                <p className="fieldError" role="alert">
+                  {formErrors.fullName}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="field">
             <label className="srOnly" htmlFor={emailId}>
               Email
@@ -120,31 +161,14 @@ export default function LoginPage() {
           ) : null}
 
           <button className="primaryButton" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {isSubmitting
+              ? authMode === 'login'
+                ? 'Đang đăng nhập...'
+                : 'Đang đăng ký...'
+              : authMode === 'login'
+                ? 'Đăng nhập'
+                : 'Đăng ký'}
           </button>
-
-          <a className="forgotLink" href="#">
-            Quên mật khẩu
-          </a>
-
-          <div className="dividerBlock" aria-hidden="true">
-            <p className="dividerText">Hoặc đăng nhập bằng</p>
-          </div>
-
-          <div className="socialRow">
-            <button className="socialButton facebook" type="button">
-              <span className="socialMark" aria-hidden="true">
-                f
-              </span>
-              <span className="socialLabel">Facebook</span>
-            </button>
-            <button className="socialButton google" type="button">
-              <span className="socialMark" aria-hidden="true">
-                G+
-              </span>
-              <span className="socialLabel">Google</span>
-            </button>
-          </div>
         </form>
       </section>
     </main>

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ou.LMS_Spring.Entities.Course;
+import com.ou.LMS_Spring.Entities.CoursePublicationStatus;
 import com.ou.LMS_Spring.Entities.Enrollment;
 import com.ou.LMS_Spring.Entities.EnrollmentStatus;
 import com.ou.LMS_Spring.Entities.User;
@@ -48,6 +49,10 @@ public class EnrollmentService implements IEnrollmentService {
         Long courseId = request.getCourseId();
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new CourseNotFoundException(courseId));
+
+        if (!course.isActive() || course.getPublicationStatus() != CoursePublicationStatus.PUBLISHED) {
+            throw new CourseNotFoundException(courseId);
+        }
 
         if (enrollmentRepository.existsByUser_IdAndCourse_Id(user.getId(), course.getId())) {
             throw new AlreadyEnrolledException();

@@ -38,6 +38,16 @@
   text-decoration: underline;
 }
 
+.loginLinkButton {
+  border: 0;
+  background: transparent;
+  color: #202020;
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
 .loginForm {
   display: flex;
   flex-direction: column;

@@ -27,6 +27,9 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String fullName;
 
+    @Column(length = 2048)
+    private String avatarUrl;
+
     @ManyToMany
     @JoinTable(
             name = "user_roles",
