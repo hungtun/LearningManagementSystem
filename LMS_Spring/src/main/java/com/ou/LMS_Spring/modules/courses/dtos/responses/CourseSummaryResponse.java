@@ -12,6 +12,7 @@ public class CourseSummaryResponse {
     private String categoryName;
     private Long instructorId;
     private String instructorName;
+    private String instructorAvatarUrl;
     private CoursePublicationStatus publicationStatus;
     private String rejectionReason;
 
@@ -25,6 +26,7 @@ public class CourseSummaryResponse {
         if (course.getInstructor() != null) {
             r.setInstructorId(course.getInstructor().getId());
             r.setInstructorName(course.getInstructor().getFullName());
+            r.setInstructorAvatarUrl(course.getInstructor().getAvatarUrl());
         }
         r.setPublicationStatus(course.getPublicationStatus());
         r.setRejectionReason(course.getRejectionReason());
@@ -85,6 +87,14 @@ public class CourseSummaryResponse {
 
     public void setInstructorName(String instructorName) {
         this.instructorName = instructorName;
+    }
+
+    public String getInstructorAvatarUrl() {
+        return instructorAvatarUrl;
+    }
+
+    public void setInstructorAvatarUrl(String instructorAvatarUrl) {
+        this.instructorAvatarUrl = instructorAvatarUrl;
     }
 
     public CoursePublicationStatus getPublicationStatus() {

@@ -2,10 +2,13 @@ package com.ou.LMS_Spring.modules.users.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ou.LMS_Spring.modules.users.dtos.UserDto;
 import com.ou.LMS_Spring.modules.users.dtos.requests.UpdateMeRequest;
@@ -36,6 +39,12 @@ public class UserController {
     @PutMapping("/me")
     public ResponseEntity<SuccessResource<UserDto>> updateMe(@Valid @RequestBody UpdateMeRequest request){
         UserDto userDto = userService.updateCurrentUserProfile(request);
+        return ResponseEntity.ok(new SuccessResource<>("SUCCESS", userDto));
+    }
+
+    @PostMapping("/me/avatar")
+    public ResponseEntity<SuccessResource<UserDto>> uploadMyAvatar(@RequestParam("file") MultipartFile file){
+        UserDto userDto = userService.updateCurrentUserAvatar(file);
         return ResponseEntity.ok(new SuccessResource<>("SUCCESS", userDto));
     }
 }

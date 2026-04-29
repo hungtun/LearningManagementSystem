@@ -7,3 +7,14 @@ export function login({ email, password }) {
   })
 }
 
+export function register({ email, password, fullName }) {
+  return requestJson('/api/auth/register', {
+    method: 'POST',
+    body: { email, password, fullName },
+  })
+}
+
+export function logout() {
+  return requestJson('/api/auth/logout')
+}
+

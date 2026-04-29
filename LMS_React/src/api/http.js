@@ -45,6 +45,13 @@ export async function requestJson(path, { method = 'GET', body, token } = {}) {
     throw error
   }
 
-  return data === null ? {} : (typeof data === 'object' ? data : {})
+  if (data === null) return {}
+  if (typeof data !== 'object') return {}
+
+  if (Object.prototype.hasOwnProperty.call(data, 'data')) {
+    return data.data ?? {}
+  }
+
+  return data
 }
 

@@ -48,7 +48,7 @@ public class AuthService extends BaseService implements IAuthService {
             if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 throw new BadCredentialsException("Email or password is incorrect");
             }
-            UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName());
+            UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl());
             String token = jwtService.generateToken(user.getId(), user.getEmail());
             return new LoginResponse(token, userDto);
         } catch (BadCredentialsException e) {
@@ -66,7 +66,7 @@ public class AuthService extends BaseService implements IAuthService {
         user.setFullName(request.getFullName());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
-        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName());
+        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl());
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         return new LoginResponse(token, userDto);
     }

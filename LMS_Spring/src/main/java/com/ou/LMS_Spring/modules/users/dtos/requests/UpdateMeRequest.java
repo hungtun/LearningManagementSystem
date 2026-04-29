@@ -10,4 +10,7 @@ public class UpdateMeRequest {
     @NotBlank
     @Size(max = 100)
     private String fullName;
+
+    @Size(max = 2048)
+    private String avatarUrl;
 }
