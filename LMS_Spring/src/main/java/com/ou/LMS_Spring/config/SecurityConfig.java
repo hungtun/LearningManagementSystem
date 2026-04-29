@@ -31,6 +31,7 @@ public class SecurityConfig {
             .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             // Routes AUTH - No JWT
             .requestMatchers("/api/auth/**").permitAll()
+            .requestMatchers("/api/assessments/instructor/**").hasAnyRole("INSTRUCTOR", "ADMIN")
             .requestMatchers("/api/enrollments/course/*/students").hasAnyRole("INSTRUCTOR","ADMIN")
             .requestMatchers("/api/system/analytics/instructor").hasAnyRole("INSTRUCTOR","ADMIN")
             .requestMatchers("/api/system/analytics/admin").hasRole("ADMIN")

@@ -3,6 +3,9 @@ package com.ou.LMS_Spring.modules.courses.services.impl;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -90,6 +93,13 @@ public class CourseService extends BaseService implements ICourseService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
         User instructor = userRepository.findById(request.getInstructorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instructor not found"));
+        if (!isCurrentUserAdmin()) {
+            User me = currentUser();
+            if (!instructor.getId().equals(me.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "You may only create a course with yourself as instructor");
+            }
+        }
 
         Course course = new Course();
         course.setTitle(request.getTitle().trim());
@@ -109,6 +119,7 @@ public class CourseService extends BaseService implements ICourseService {
     public CourseDetailResponse updateCourse(Long id, CourseUpdateRequest request) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+        assertCourseInstructorOrAdmin(course);
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
@@ -133,6 +144,7 @@ public class CourseService extends BaseService implements ICourseService {
     public void deleteCourse(Long id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+        assertCourseInstructorOrAdmin(course);
         if (enrollmentRepository.countByCourse_Id(id) > 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Cannot delete course with active enrollments");
@@ -147,6 +159,7 @@ public class CourseService extends BaseService implements ICourseService {
     public LessonDetailResponse addLesson(Long courseId, LessonCreateRequest request) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+        assertCourseInstructorOrAdmin(course);
         Integer maxIdx = lessonRepository.findMaxOrderIndexByCourseId(courseId);
         int max = maxIdx != null ? maxIdx : -1;
         Lesson lesson = new Lesson();
@@ -163,6 +176,7 @@ public class CourseService extends BaseService implements ICourseService {
     public LessonDetailResponse updateLesson(Long lessonId, LessonUpdateRequest request) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found"));
+        assertCourseInstructorOrAdmin(lesson.getCourse());
         lesson.setTitle(request.getTitle().trim());
         lesson.setContent(request.getContent());
         Lesson saved = lessonRepository.save(lesson);
@@ -174,6 +188,7 @@ public class CourseService extends BaseService implements ICourseService {
     public void deleteLesson(Long lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found"));
+        assertCourseInstructorOrAdmin(lesson.getCourse());
         Long courseId = lesson.getCourse().getId();
         lessonRepository.delete(lesson);
         renumberLessons(courseId);
@@ -185,6 +200,7 @@ public class CourseService extends BaseService implements ICourseService {
         Lesson moving = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found"));
         Course course = moving.getCourse();
+        assertCourseInstructorOrAdmin(course);
         List<Lesson> ordered = new ArrayList<>(lessonRepository.findByCourse_IdOrderByOrderIndexAsc(course.getId()));
 
         List<Lesson> without = new ArrayList<>();
@@ -258,5 +274,32 @@ public class CourseService extends BaseService implements ICourseService {
             list.get(i).setOrderIndex(i);
         }
         lessonRepository.saveAll(list);
+    }
+
+    private User currentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+    }
+
+    private boolean isCurrentUserAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
+    }
+
+    private void assertCourseInstructorOrAdmin(Course course) {
+        if (isCurrentUserAdmin()) {
+            return;
+        }
+        User instructor = course.getInstructor();
+        User me = currentUser();
+        if (instructor == null || !instructor.getId().equals(me.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to modify this course");
+        }
     }
 }

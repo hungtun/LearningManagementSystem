@@ -11,6 +11,9 @@ import com.ou.LMS_Spring.Entities.Enrollment;
 
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
+
+    long countByCourse_Id(Long courseId);
+
     boolean existsByUser_IdAndCourse_Id(Long userId, Long courseId);
 
     List<Enrollment> findByUser_IdOrderByEnrolledAtDesc(Long userId);
@@ -26,7 +29,5 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Object[]> countEnrollmentsByDay(@Param("from") java.time.LocalDateTime from,
                                         @Param("to") java.time.LocalDateTime to);
     
-    long countByCourse_Id(Long courseId);
-
     long countByCourse_Instructor_Id(Long instructorId);
 }
