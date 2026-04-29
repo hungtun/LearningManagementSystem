@@ -27,7 +27,7 @@ export async function uploadCurrentUserAvatar(file) {
   let data = null
   try {
     data = await response.json()
-  } catch (_) {
+  } catch {
     data = null
   }
 

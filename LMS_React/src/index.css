@@ -18,3 +18,52 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Global loading / error states used across modules */
+.courseLoadingBox,
+.learningLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  font-size: 15px;
+  color: #64748b;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.courseErrorBox,
+.learningError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  font-size: 14px;
+  color: #b91c1c;
+  background: #fff1f2;
+  border-radius: 12px;
+  border: 1px solid #fca5a5;
+}
+
+.courseErrorBox button,
+.learningError button {
+  background: #7c3aed;
+  color: #fff;
+  border: 0;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.formErrMsg {
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fff1f2;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+}

@@ -1,0 +1,326 @@
+.asvPage {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.asvBackLink {
+  align-self: flex-start;
+  background: #f1f5f9;
+  border: 0;
+  color: #475569;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.asvBackLink:hover { background: #e2e8f0; }
+
+.asvHeader {}
+
+.asvCourse {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+.asvTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 6px 0 0;
+}
+
+.asvBody {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.asvInfo {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.asvInfoRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.asvInfoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.asvInfoLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+
+.asvInfoValue {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.asvInfoValue.overdue { color: #b91c1c; font-weight: 600; }
+
+.asvGradeBox {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.asvGradeScore {
+  font-size: 48px;
+  font-weight: 900;
+  color: #16a34a;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.asvGradeScore span {
+  font-size: 20px;
+  color: #86efac;
+}
+
+.asvGradeFeedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.asvGradeFeedback p {
+  font-size: 14px;
+  color: #166534;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.asvForm {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.asvDropZone {
+  border: 2px dashed #c4b5fd;
+  border-radius: 12px;
+  padding: 36px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: #faf5ff;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.asvDropZone:hover { border-color: #7c3aed; background: #f5f3ff; }
+
+.asvDropZone.dragging {
+  border-color: #7c3aed;
+  background: #ede9fe;
+}
+
+.asvDropZone.hasFile {
+  background: #f0fdf4;
+  border-color: #86efac;
+  padding: 16px 20px;
+}
+
+.asvDropIcon {
+  font-size: 36px;
+  color: #a78bfa;
+}
+
+.asvDropMain {
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+}
+
+.asvDropMain u { color: #7c3aed; }
+
+.asvDropSub {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.asvFilePreview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.asvFileIcon {
+  font-size: 28px;
+  color: #16a34a;
+}
+
+.asvFileName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  word-break: break-all;
+}
+
+.asvFileSize {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.asvFileRemove {
+  margin-left: auto;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.asvNoteRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.asvLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.asvTextarea {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #334155;
+  resize: vertical;
+  font-family: inherit;
+  outline: none;
+}
+
+.asvTextarea:focus { border-color: #7c3aed; }
+
+.asvActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.asvCancelBtn {
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.asvCancelBtn:hover { background: #f1f5f9; }
+
+.asvSubmitBtn {
+  background: #7c3aed;
+  color: #fff;
+  border: 0;
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.asvSubmitBtn:hover { background: #6d28d9; }
+.asvSubmitBtn:disabled { background: #c4b5fd; cursor: not-allowed; }
+
+/* Success screen */
+.asvSuccess {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 24px;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+
+.asvSuccessIcon {
+  width: 72px;
+  height: 72px;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.asvSuccess h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.asvSuccess p {
+  font-size: 15px;
+  color: #64748b;
+  margin: 0;
+}
+
+.asvBackBtn {
+  margin-top: 16px;
+  background: #7c3aed;
+  color: #fff;
+  border: 0;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.asvBackBtn:hover { background: #6d28d9; }

@@ -1,0 +1,281 @@
+.certRoot {
+  display: grid;
+  gap: 20px;
+}
+
+.certBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.btnBack {
+  border: 0;
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnBack:hover { background: #e2e8f0; }
+.breadSep { color: #94a3b8; }
+
+.certPage {
+  display: grid;
+  gap: 20px;
+}
+
+.certActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.certPageTitle {
+  margin: 0;
+  font-size: 20px;
+}
+
+.certBtns {
+  display: flex;
+  gap: 10px;
+}
+
+.btnDownload {
+  background: #2563eb;
+  color: #fff;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnDownload:hover { background: #1d4ed8; }
+
+.btnShare {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Certificate card design */
+.certCard {
+  background: #fff;
+  border: 4px solid #1e3a5f;
+  border-radius: 8px;
+  padding: 48px 52px;
+  text-align: center;
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.15);
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(37,99,235,0.04), transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(16,185,129,0.04), transparent 40%);
+}
+
+.certCard::before,
+.certCard::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px solid #c7d2e4;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.certCard::after {
+  inset: 12px;
+  border-color: #e5ecf5;
+}
+
+.certHeader {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.certLogo {
+  display: inline-block;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+  padding: 8px 20px;
+  border-radius: 8px;
+  letter-spacing: 3px;
+}
+
+.certTagline {
+  font-size: 12px;
+  color: #64748b;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.certBody {
+  margin-bottom: 36px;
+}
+
+.certPreamble {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.certStudentName {
+  margin: 0 0 16px;
+  font-size: 36px;
+  font-family: Georgia, serif;
+  color: #1e293b;
+  font-weight: 400;
+  border-bottom: 2px solid #2563eb;
+  display: inline-block;
+  padding-bottom: 6px;
+  min-width: 280px;
+}
+
+.certPreamble2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.certCourseName {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-family: Georgia, serif;
+  color: #1e3a5f;
+  font-weight: 700;
+}
+
+.certInstructor {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.certFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 40px;
+}
+
+.certSignature {
+  text-align: center;
+  min-width: 160px;
+}
+
+.certSignatureLine {
+  height: 1px;
+  background: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.certSignature p {
+  margin: 2px 0;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.certSignatureName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.certRight {
+  text-align: right;
+}
+
+.certSeal {
+  width: 76px;
+  height: 76px;
+  border-radius: 999px;
+  border: 3px solid #1e3a5f;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #1e3a5f11, #2563eb11);
+}
+
+.certSealInner {
+  font-size: 20px;
+  font-weight: 900;
+  color: #1e3a5f;
+  letter-spacing: 2px;
+}
+
+/* Info grid */
+.certInfo {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.certInfoItem {}
+
+.certInfoLabel {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+.certInfoValue {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.certError {
+  color: #94a3b8;
+  font-style: italic;
+  text-align: center;
+  padding: 40px;
+}
+
+@media (max-width: 760px) {
+  .certCard {
+    padding: 28px 20px;
+  }
+
+  .certStudentName {
+    font-size: 26px;
+  }
+
+  .certCourseName {
+    font-size: 17px;
+  }
+
+  .certInfo {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

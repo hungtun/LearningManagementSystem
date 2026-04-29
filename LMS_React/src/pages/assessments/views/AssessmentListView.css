@@ -1,0 +1,175 @@
+.assessListPage {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.assessSection {}
+
+.assessSectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.assessGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.assessCard {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.assessCard:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.assessCard.overdue {
+  border-color: #fca5a5;
+}
+
+.assessCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+
+.assessTypeBadge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.assessTypeBadge.quiz {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.assessTypeBadge.assignment {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.assessStatusBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+.assessStatusBadge.open { background: #dcfce7; color: #166534; }
+.assessStatusBadge.closed { background: #f1f5f9; color: #64748b; }
+.assessStatusBadge.submitted { background: #dbeafe; color: #1e40af; }
+.assessStatusBadge.graded { background: #dcfce7; color: #166534; }
+.assessStatusBadge.overdue { background: #fee2e2; color: #b91c1c; }
+
+.assessCardBody {
+  padding: 12px 16px;
+  flex: 1;
+}
+
+.assessCourseName {
+  font-size: 12px;
+  color: #7c3aed;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.assessTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.assessDesc {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.assessMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.metaIcon {
+  margin-right: 4px;
+}
+
+.gradedFeedback {
+  margin-top: 10px;
+  background: #f0fdf4;
+  border-left: 3px solid #22c55e;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #166534;
+  border-radius: 0 6px 6px 0;
+}
+
+.assessCardFoot {
+  padding: 12px 16px 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btnStart {
+  background: #7c3aed;
+  color: #fff;
+  border: 0;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnStart:hover { background: #6d28d9; }
+.btnStart:disabled { background: #c4b5fd; cursor: not-allowed; }
+
+.btnRetake {
+  background: #fff;
+  color: #7c3aed;
+  border: 1.5px solid #7c3aed;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnRetake:hover { background: #ede9fe; }
+
+.txtGraded {
+  font-size: 13px;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+.emptyText {
+  color: #94a3b8;
+  font-size: 14px;
+}

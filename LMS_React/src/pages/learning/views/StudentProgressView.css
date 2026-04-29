@@ -1,0 +1,204 @@
+.spPage {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Summary cards */
+.spSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.spSummaryCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.spSummaryCard.green { border-left: 4px solid #22c55e; }
+.spSummaryCard.blue  { border-left: 4px solid #3b82f6; }
+
+.spSummaryNum {
+  font-size: 28px;
+  font-weight: 900;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.spSummaryLabel {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Toolbar */
+.spToolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.spSearch {
+  flex: 1;
+  min-width: 200px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: #334155;
+  outline: none;
+}
+
+.spSearch:focus { border-color: #7c3aed; }
+
+.spSelect {
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.spSelect:focus { border-color: #7c3aed; }
+
+/* Table */
+.spTable {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.spTableHead {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 110px 120px 160px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  gap: 12px;
+  min-width: 900px;
+}
+
+.spTableRow {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 110px 120px 160px;
+  padding: 12px 16px;
+  gap: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  align-items: center;
+  transition: background 0.1s;
+  min-width: 900px;
+}
+
+.spTableRow:last-child { border-bottom: 0; }
+.spTableRow:hover { background: #fafafa; }
+
+.spCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.studentCell { align-items: flex-start; }
+
+.spAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #7c3aed;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.spStudentName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.spStudentEmail {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.spCourseTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progressCell { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+.spProgressTrack {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.spProgressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.spProgressText {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.spBadge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.spBadge.completed { background: #dcfce7; color: #166534; }
+.spBadge.active    { background: #dbeafe; color: #1e40af; }
+
+.spDate {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.spEmpty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 48px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .spSummaryGrid { grid-template-columns: repeat(2, 1fr); }
+}

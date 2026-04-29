@@ -30,12 +30,20 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AuthService extends BaseService implements IAuthService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private static final String CODE = "code";
     private final JwtService jwtService;
     private  final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+
+    private static String extractRole(User user) {
+        return user.getRoles().stream()
+                .map(r -> r.getName().toUpperCase().replace("ROLE_", ""))
+                .filter(name -> name.equals("ADMIN") || name.equals("INSTRUCTOR") || name.equals("STUDENT"))
+                .findFirst()
+                .orElse("STUDENT");
+    }
 
     @Override
     public LoginResponse authenticate(LoginRequest request) {
@@ -48,7 +56,7 @@ public class AuthService extends BaseService implements IAuthService {
             if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 throw new BadCredentialsException("Email or password is incorrect");
             }
-            UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl());
+            UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl(), extractRole(user));
             String token = jwtService.generateToken(user.getId(), user.getEmail());
             return new LoginResponse(token, userDto);
         } catch (BadCredentialsException e) {
@@ -56,6 +64,7 @@ public class AuthService extends BaseService implements IAuthService {
             throw e;
         }
     }
+
     @Override
     public LoginResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -66,12 +75,13 @@ public class AuthService extends BaseService implements IAuthService {
         user.setFullName(request.getFullName());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
-        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl());
+        // Newly registered user has no roles yet — default to STUDENT
+        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl(), "STUDENT");
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         return new LoginResponse(token, userDto);
     }
 
-  
+
 
     private ApiBusinessException accountDisabled() {
         Map<String, String> errors = new HashMap<>();
@@ -88,5 +98,5 @@ public class AuthService extends BaseService implements IAuthService {
                 new ErrorResource("Registration failed", errors));
     }
 
-    
+
 }

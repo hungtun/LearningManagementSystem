@@ -1,0 +1,317 @@
+.detailRoot {
+  display: grid;
+  gap: 20px;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.breadcrumbLink {
+  border: 0;
+  background: none;
+  color: #3b82f6;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+
+.breadcrumbLink:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbSep {
+  color: #94a3b8;
+}
+
+.breadcrumbCurrent {
+  color: #475569;
+  font-weight: 600;
+}
+
+/* Hero */
+.detailHero {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  border-radius: 16px;
+  padding: 28px;
+  align-items: start;
+}
+
+.detailHeroBody {
+  color: #fff;
+  display: grid;
+  gap: 12px;
+}
+
+.detailCategory {
+  display: inline-block;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  width: fit-content;
+  letter-spacing: 0.04em;
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.detailDesc {
+  margin: 0;
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.detailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metaChip {
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.detailInstructor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 12px;
+  padding: 10px 14px;
+  width: fit-content;
+}
+
+.instructorAvatarBox {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.15);
+  border: 2px solid rgba(255,255,255,0.3);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.instructorAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.instructorInitials {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.instructorRole {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.instructorName {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Enroll sidebar */
+.enrollSidebar {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 14px 36px rgba(15,23,42,0.18);
+  display: grid;
+  gap: 12px;
+}
+
+.enrollPrice {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.btnEnroll {
+  width: 100%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btnEnroll:hover {
+  opacity: 0.9;
+}
+
+.btnEnrolled {
+  width: 100%;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.enrollSuccess {
+  margin: 0;
+  font-size: 13px;
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.enrollFeatures {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+/* Curriculum */
+.curriculumSection {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.curriculumSection h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.curriculumMeta {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.lessonList {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.lessonRow {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.lessonRow:last-child {
+  border-bottom: 0;
+}
+
+.lessonToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.lessonToggle:hover {
+  background: #f8fafc;
+}
+
+.lessonRow.expanded .lessonToggle {
+  background: #eff6ff;
+}
+
+.lessonIndex {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.lessonTitle {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.lessonDuration {
+  font-size: 12px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.lessonChevron {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-left: 6px;
+}
+
+.lessonContent {
+  padding: 14px 16px 14px 58px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.lockedNote {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.emptyNote {
+  color: #94a3b8;
+  font-style: italic;
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .detailHero {
+    grid-template-columns: 1fr;
+  }
+}

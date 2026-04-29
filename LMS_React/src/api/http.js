@@ -34,7 +34,7 @@ export async function requestJson(path, { method = 'GET', body, token } = {}) {
     } else {
       data = text || null
     }
-  } catch (_) {
+  } catch {
     data = null
   }
 
@@ -53,5 +53,26 @@ export async function requestJson(path, { method = 'GET', body, token } = {}) {
   }
 
   return data
+}
+
+// Use for binary responses (e.g. certificate download)
+export async function requestBlob(path) {
+  const headers = { Accept: '*/*' }
+  const authToken = getToken()
+  if (authToken) headers.Authorization = `Bearer ${authToken}`
+
+  const res = await fetch(path, { method: 'GET', headers })
+
+  if (!res.ok) {
+    const error = new Error('Request failed')
+    error.status = res.status
+    throw error
+  }
+
+  const blob = await res.blob()
+  const disposition = res.headers.get('Content-Disposition') || ''
+  const match = disposition.match(/filename[^;=\n]*=(['"]?)([^'"\n]*)\1/)
+  const filename = match ? match[2] : 'download'
+  return { blob, filename }
 }
 

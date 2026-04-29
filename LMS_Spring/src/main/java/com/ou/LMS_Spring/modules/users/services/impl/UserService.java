@@ -25,14 +25,23 @@ public class UserService extends BaseService implements IUserService {
 
     private User currentUser(){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-
         return userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException());
     }
+
+    // Extract the primary role name (STUDENT / INSTRUCTOR / ADMIN) from the User's roles set
+    private static String extractRole(User u) {
+        return u.getRoles().stream()
+                .map(r -> r.getName().toUpperCase().replace("ROLE_", ""))
+                .filter(name -> name.equals("ADMIN") || name.equals("INSTRUCTOR") || name.equals("STUDENT"))
+                .findFirst()
+                .orElse("STUDENT");
+    }
+
     @Override
     @Transactional(readOnly = true)
     public UserDto getCurrentUserProfile(){
         User u = currentUser();
-        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl());
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl(), extractRole(u));
     }
 
     @Override
@@ -46,7 +55,7 @@ public class UserService extends BaseService implements IUserService {
             u.setAvatarUrl(normalizedAvatarUrl.isEmpty() ? null : normalizedAvatarUrl);
         }
         userRepository.save(u);
-        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl());
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl(), extractRole(u));
     }
 
     @Override
@@ -56,7 +65,7 @@ public class UserService extends BaseService implements IUserService {
         String uploadedAvatarUrl = cloudinaryService.uploadAvatar(file);
         u.setAvatarUrl(uploadedAvatarUrl);
         userRepository.save(u);
-        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl());
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl(), extractRole(u));
     }
 
 

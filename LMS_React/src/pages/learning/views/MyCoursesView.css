@@ -1,0 +1,244 @@
+.myCoursesRoot {
+  display: grid;
+  gap: 20px;
+}
+
+/* Summary */
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.summaryCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+}
+
+.summaryNum {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  color: #0ea5e9;
+}
+
+.summaryLabel {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Grid */
+.enrollGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.emptyEnroll {
+  text-align: center;
+  padding: 60px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Enroll card */
+.enrollCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.enrollThumb {
+  height: 110px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 10px 14px;
+  position: relative;
+}
+
+.enrollThumbCat {
+  background: rgba(255,255,255,0.22);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.completedStamp {
+  background: #22c55e;
+  color: #fff;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.enrollBody {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  flex: 1;
+}
+
+.enrollTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.enrollInstructor {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Progress */
+.progressBlock {
+  display: grid;
+  gap: 5px;
+}
+
+.progressLabelRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.progressPct {
+  font-weight: 700;
+  color: #0ea5e9;
+}
+
+.progressTrack {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.fillBlue  { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+.fillGreen { background: linear-gradient(135deg, #22c55e, #16a34a); }
+
+/* Mini lesson list */
+.miniLessonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.miniLesson {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  padding: 3px 0;
+}
+
+.miniLesson.done { color: #94a3b8; }
+
+.miniCheck {
+  font-size: 12px;
+  color: #22c55e;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.miniLesson.done .miniCheck { color: #22c55e; }
+.miniLesson:not(.done) .miniCheck { color: #94a3b8; }
+
+.miniTitle {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miniLesson.done .miniTitle { text-decoration: line-through; }
+
+.miniInProgress {
+  font-size: 11px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-weight: 700;
+}
+
+/* Actions */
+.enrollActions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.btnContinue {
+  flex: 1;
+  background: #0ea5e9;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnContinue:hover { background: #0284c7; }
+
+.btnCertificate {
+  flex: 1;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btnReview {
+  background: #f1f5f9;
+  color: #475569;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnReview:hover { background: #e2e8f0; }
+
+@media (max-width: 640px) {
+  .summaryRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .enrollGrid {
+    grid-template-columns: 1fr;
+  }
+}

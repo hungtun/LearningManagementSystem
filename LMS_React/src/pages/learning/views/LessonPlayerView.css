@@ -1,0 +1,605 @@
+.playerRoot {
+  display: grid;
+  gap: 0;
+  min-height: calc(100vh - 60px);
+}
+
+/* Top bar */
+.playerTopBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.btnBack {
+  border: 0;
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btnBack:hover { background: #e2e8f0; }
+
+.playerCourseInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.playerCourseTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.playerProgress {
+  font-size: 12px;
+  color: #0ea5e9;
+  font-weight: 600;
+}
+
+.btnCert {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Layout */
+.playerLayout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Sidebar */
+.playerSidebar {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  position: sticky;
+  top: 16px;
+}
+
+.sidebarHead {
+  padding: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.sidebarCourseTitle {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.sidebarProgressTrack {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.sidebarProgressFill {
+  height: 100%;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.sidebarProgressLabel {
+  margin: 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.sidebarLessonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebarLesson {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.12s;
+}
+
+.sidebarLesson:hover { background: #f8fafc; }
+.sidebarLesson.active { background: #eff6ff; }
+.sidebarLesson.completed { opacity: 0.75; }
+
+.sidebarLessonCheck {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sidebarLesson.completed .sidebarLessonCheck {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.sidebarLesson.active .sidebarLessonCheck {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.sidebarLessonTitle {
+  flex: 1;
+  font-size: 13px;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebarLesson.active .sidebarLessonTitle {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.sidebarLessonDur {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.sidebarMiniProgress {
+  height: 3px;
+  background: #e2e8f0;
+  margin: 0 14px;
+}
+
+.sidebarMiniProgress div {
+  height: 100%;
+  background: #f59e0b;
+}
+
+/* Main panel */
+.playerMain {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.noLesson {
+  color: #94a3b8;
+  font-style: italic;
+  text-align: center;
+  padding: 40px;
+}
+
+.lessonHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.lessonTitle {
+  margin: 0;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.lessonNav {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btnNavLesson {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnNavLesson:hover:not(:disabled) { background: #f1f5f9; }
+.btnNavLesson:disabled { opacity: 0.4; cursor: default; }
+
+/* Video placeholder */
+.videoPlaceholder {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-radius: 10px;
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+}
+
+.videoIcon {
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.3);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  color: #fff;
+}
+
+/* Video progress */
+.videoProgressWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.vpLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.vpSlider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: #0ea5e9;
+}
+
+.vpPct {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0ea5e9;
+  width: 36px;
+  text-align: right;
+}
+
+/* Mark complete */
+.btnMarkDone {
+  background: #0ea5e9;
+  color: #fff;
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.15s;
+}
+
+.btnMarkDone:hover { background: #0284c7; }
+
+.completedNote {
+  margin: 0;
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 9px 14px;
+}
+
+/* Tabs */
+.contentTabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.contentTab {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s;
+}
+
+.contentTab:hover { color: #1e293b; }
+
+.contentTab.active {
+  color: #0ea5e9;
+  border-bottom-color: #0ea5e9;
+}
+
+/* Lesson content */
+.lessonContent {
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.7;
+}
+
+/* Discussion */
+.discussSection { display: grid; gap: 14px; }
+.discussTitle { margin: 0; font-size: 15px; color: #1e293b; }
+
+.discussForm {
+  display: grid;
+  gap: 8px;
+}
+
+.discussForm textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.btnPost {
+  background: #0ea5e9;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.btnPost:disabled { opacity: 0.5; cursor: default; }
+
+.discussEmpty {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 14px;
+  margin: 0;
+}
+
+.discussList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.discussItem {
+  display: flex;
+  gap: 10px;
+}
+
+.discussAvatar, .replyAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.replyAvatar {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.discussBody { flex: 1; min-width: 0; }
+
+.discussMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.discussDate { color: #94a3b8; }
+
+.discussContent {
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.replyList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0 0 0 10px;
+  border-left: 2px solid #e2e8f0;
+  display: grid;
+  gap: 10px;
+}
+
+.replyItem { display: flex; gap: 8px; }
+
+/* Review */
+.reviewSection { display: grid; gap: 14px; }
+.reviewTitle { margin: 0; font-size: 15px; color: #1e293b; }
+
+.reviewSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.reviewAvg {
+  font-size: 28px;
+  font-weight: 800;
+  color: #92400e;
+}
+
+.reviewStars {
+  font-size: 20px;
+  color: #f59e0b;
+  letter-spacing: 2px;
+}
+
+.reviewCount { font-size: 13px; color: #92400e; }
+
+.reviewForm {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.reviewFormLabel {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.starPicker {
+  display: flex;
+  gap: 4px;
+}
+
+.starBtn {
+  border: 0;
+  background: none;
+  font-size: 26px;
+  color: #d1d5db;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s;
+}
+
+.starBtn.active { color: #f59e0b; }
+
+.reviewForm textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.reviewSubmitted {
+  margin: 0;
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.reviewNote {
+  margin: 0;
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.reviewList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.reviewItem { display: flex; gap: 10px; }
+
+.reviewAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.reviewBody { flex: 1; }
+
+.reviewMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.reviewStarsSmall { color: #f59e0b; font-size: 13px; }
+.reviewDate { color: #94a3b8; font-size: 12px; }
+
+.reviewComment {
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .playerLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .playerSidebar {
+    position: static;
+  }
+}

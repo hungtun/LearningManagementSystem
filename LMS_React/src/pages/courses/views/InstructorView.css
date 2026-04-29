@@ -1,0 +1,352 @@
+.instructorRoot {
+  display: grid;
+  gap: 16px;
+}
+
+.instructorToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.instructorTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+/* Stats */
+.instructorStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.iStatCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.iStatNum {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.iStatLabel {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Table */
+.iTableWrap {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #f8fafc;
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+td {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover {
+  background: #f8fbff;
+}
+
+.emptyCell {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 32px;
+}
+
+.courseTitleBtn {
+  border: 0;
+  background: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0;
+  text-align: left;
+}
+
+.courseTitleBtn:hover {
+  text-decoration: underline;
+}
+
+/* Status badges */
+.statusBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sGreen  { background: #dcfce7; color: #166534; }
+.sGray   { background: #f1f5f9; color: #475569; }
+.sYellow { background: #fef3c7; color: #92400e; }
+.sRed    { background: #fef2f2; color: #991b1b; }
+
+/* Buttons */
+.btnPri, .btnSec, .btnSmPri, .btnSmSec, .btnSmDanger {
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btnPri { background: #2563eb; color: #fff; padding: 10px 16px; font-size: 14px; }
+.btnSec { background: #e2e8f0; color: #0f172a; padding: 10px 16px; font-size: 14px; }
+.btnSmPri { background: #dbeafe; color: #1d4ed8; padding: 5px 10px; font-size: 12px; }
+.btnSmSec { background: #f1f5f9; color: #334155; padding: 5px 10px; font-size: 12px; }
+.btnSmDanger { background: #fee2e2; color: #dc2626; padding: 5px 10px; font-size: 12px; }
+
+.actionBtns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Modal */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.55);
+  display: grid;
+  place-items: center;
+  z-index: 200;
+  padding: 20px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(15,23,42,0.26);
+  display: flex;
+  flex-direction: column;
+}
+
+.modalXl {
+  max-width: 700px;
+}
+
+.modalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modalHead h3 { margin: 0; font-size: 17px; }
+
+.modalSub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.closeBtn {
+  border: 0;
+  background: #f1f5f9;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #334155;
+  flex-shrink: 0;
+}
+
+.cForm {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.cForm label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.cForm input, .cForm select, .cForm textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.cForm textarea { resize: vertical; }
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modalFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Lesson manager */
+.lessonMgrBody {
+  padding: 16px 20px;
+  flex: 1;
+}
+
+.lessonMgrToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.lessonCount {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.lessonMgrList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.lessonMgrItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.lessonMgrOrder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.orderBtn {
+  border: 0;
+  background: #e2e8f0;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  font-size: 10px;
+  color: #475569;
+  display: grid;
+  place-items: center;
+  transition: background 0.1s;
+}
+
+.orderBtn:hover:not(:disabled) { background: #cbd5e1; }
+.orderBtn:disabled { opacity: 0.35; cursor: default; }
+
+.orderNum {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  min-width: 16px;
+  text-align: center;
+}
+
+.lessonMgrInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.lessonMgrTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lessonMgrMeta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.lessonMgrActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lessonFormPanel {
+  border-top: 1px solid #e2e8f0;
+  padding: 16px 20px;
+  background: #f8fafc;
+}
+
+.lessonFormPanel h4 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.emptyNote {
+  color: #94a3b8;
+  font-style: italic;
+  margin: 0;
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .instructorStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
