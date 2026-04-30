@@ -98,10 +98,10 @@ public class JwtService {
     public boolean isIssuerToken(String token) {
         try {
             String tokenIssuer = getClaimFromToken(token, Claims::getIssuer);
-            return tokenIssuer.equals(jwtConfig.getIssuer());
+            return tokenIssuer != null && tokenIssuer.equals(jwtConfig.getIssuer());
         } catch (Exception e) {
             logger.error("Error checking token issuer: {}", e.getMessage());
-            return true;
+            return false;
         }
     }
 
