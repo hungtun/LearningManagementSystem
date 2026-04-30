@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -26,6 +27,69 @@ import lombok.RequiredArgsConstructor;
 public class CloudinaryService {
 
     private final CloudinaryConfig cloudinaryConfig;
+
+    private static final long MAX_DOCUMENT_BYTES = 50L * 1024 * 1024; // 50 MB
+    private static final Set<String> ALLOWED_DOCUMENT_TYPES = Set.of(
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "text/plain",
+            "application/zip",
+            "application/x-zip-compressed"
+    );
+
+    public String uploadDocument(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is required");
+        }
+        if (file.getSize() > MAX_DOCUMENT_BYTES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File exceeds 50 MB limit");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_DOCUMENT_TYPES.contains(contentType)) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                    "Unsupported file type. Allowed: PDF, Word, PowerPoint, Excel, TXT, ZIP");
+        }
+
+        validateCloudinaryConfig();
+
+        long timestamp = Instant.now().getEpochSecond();
+        String folder = cloudinaryConfig.getDocumentsFolder();
+
+        Map<String, String> signParams = new HashMap<>();
+        signParams.put("timestamp", String.valueOf(timestamp));
+        if (folder != null && !folder.isBlank()) {
+            signParams.put("folder", folder);
+        }
+
+        String signature = createSignature(signParams, cloudinaryConfig.getApiSecret());
+        // Use /raw/upload endpoint for non-image files
+        String endpoint = String.format("https://api.cloudinary.com/v1_1/%s/raw/upload", cloudinaryConfig.getCloudName());
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("api_key", cloudinaryConfig.getApiKey());
+        body.add("timestamp", String.valueOf(timestamp));
+        body.add("signature", signature);
+        if (folder != null && !folder.isBlank()) {
+            body.add("folder", folder);
+        }
+        body.add("file", toResource(file));
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, createMultipartHeaders());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> response = restTemplate.postForObject(endpoint, request, Map.class);
+        if (response == null || response.get("secure_url") == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Cloudinary upload failed");
+        }
+
+        return response.get("secure_url").toString();
+    }
 
     public String uploadAvatar(MultipartFile file) {
         if (file == null || file.isEmpty()) {

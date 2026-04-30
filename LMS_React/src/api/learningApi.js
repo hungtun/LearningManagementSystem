@@ -12,12 +12,14 @@ export function getCourseProgress(courseId) {
   return requestJson(`${BASE}/course/${courseId}/progress`)
 }
 
-// discussionData: { lessonId, content }
+// discussionData: { lessonId, content, parentId? }
+// parentId is optional - when provided, creates a reply to the given discussion
 export function createDiscussion(discussionData) {
   return requestJson(`${BASE}/discussions`, { method: 'POST', body: discussionData })
 }
 
-// Returns array of { id, userId, userFullName, lessonId, content, createdAt }
+// Returns array of root discussions, each with a `replies` array
+// Shape: { id, userId, userFullName, userRole, lessonId, parentId, content, createdAt, replies[] }
 export function listDiscussions(lessonId) {
   return requestJson(`${BASE}/discussions/${lessonId}`)
 }

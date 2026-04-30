@@ -8,8 +8,10 @@ import {
 } from '../../api/assessmentsApi.js'
 import { MOCK_ASSIGNMENTS, MOCK_QUIZZES } from './assessmentsData.js'
 import AssessmentListView from './views/AssessmentListView.jsx'
+import AssignmentBuilderView from './views/AssignmentBuilderView.jsx'
 import AssignmentSubmitView from './views/AssignmentSubmitView.jsx'
 import InstructorSubmissionsView from './views/InstructorSubmissionsView.jsx'
+import QuizBuilderView from './views/QuizBuilderView.jsx'
 import QuizPlayerView from './views/QuizPlayerView.jsx'
 import './AssessmentsPage.css'
 
@@ -175,18 +177,34 @@ export default function AssessmentsPage({ role }) {
           </button>
         )}
         {isInstructor && (
-          <button
-            type="button"
-            className={view === 'submissions' ? 'assessNavBtn active' : 'assessNavBtn'}
-            onClick={() => setView('submissions')}
-          >
-            Bài đã nộp
-            {submissions.filter((s) => s.score == null).length > 0 && (
-              <span className="pendingBadge">
-                {submissions.filter((s) => s.score == null).length}
-              </span>
-            )}
-          </button>
+          <>
+            <button
+              type="button"
+              className={view === 'submissions' ? 'assessNavBtn active' : 'assessNavBtn'}
+              onClick={() => setView('submissions')}
+            >
+              Bai da nop
+              {submissions.filter((s) => s.score == null).length > 0 && (
+                <span className="pendingBadge">
+                  {submissions.filter((s) => s.score == null).length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              className={view === 'quizBuilder' ? 'assessNavBtn active' : 'assessNavBtn'}
+              onClick={() => setView('quizBuilder')}
+            >
+              Quan ly Quiz
+            </button>
+            <button
+              type="button"
+              className={view === 'assignmentBuilder' ? 'assessNavBtn active' : 'assessNavBtn'}
+              onClick={() => setView('assignmentBuilder')}
+            >
+              Quan ly Bai tap
+            </button>
+          </>
         )}
       </div>
 
@@ -217,12 +235,16 @@ export default function AssessmentsPage({ role }) {
 
       {view === 'submissions' && (
         submissionsLoading
-          ? <div className="assessLoading">Đang tải danh sách bài nộp...</div>
+          ? <div className="assessLoading">Dang tai danh sach bai nop...</div>
           : <InstructorSubmissionsView
               submissions={submissions}
               onGrade={handleGrade}
             />
       )}
+
+      {view === 'quizBuilder' && <QuizBuilderView />}
+
+      {view === 'assignmentBuilder' && <AssignmentBuilderView />}
     </>
   )
 }

@@ -1,6 +1,14 @@
 import { useState } from 'react'
+import { getLessonDetail, uploadLessonAttachment, deleteLessonAttachment } from '../../../api/coursesApi.js'
 import { CATEGORIES, LEVELS, LEVEL_LABEL, PUBLICATION_STATUSES, PUBLICATION_STATUS_LABEL, emptyCoursForm, emptyLessonForm } from '../coursesData.js'
 import './InstructorView.css'
+
+function formatBytes(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 // ----- Status badge -----
 function StatusBadge({ status }) {
@@ -89,10 +97,51 @@ function LessonManager({ course, onUpdateCourse, onClose }) {
     setShowLessonForm(true)
   }
 
-  function openEdit(lesson) {
+  const [editingAttachments, setEditingAttachments] = useState([])
+  const [attachUploading, setAttachUploading] = useState(false)
+  const [attachError, setAttachError] = useState(null)
+
+  async function openEdit(lesson) {
     setEditingLesson(lesson)
-    setLessonForm({ title: lesson.title, content: lesson.content || '' })
+    setLessonForm({ title: lesson.title, content: lesson.content || '', videoUrl: lesson.videoUrl || '' })
+    setAttachError(null)
+    // Load current attachments for existing lessons (real id, not Date.now())
+    if (lesson.id && lesson.id < 1e12) {
+      try {
+        const detail = await getLessonDetail(lesson.id)
+        setEditingAttachments(detail?.attachments || [])
+      } catch {
+        setEditingAttachments([])
+      }
+    } else {
+      setEditingAttachments([])
+    }
     setShowLessonForm(true)
+  }
+
+  async function handleUploadAttachment(e) {
+    const file = e.target.files?.[0]
+    if (!file || !editingLesson) return
+    setAttachUploading(true)
+    setAttachError(null)
+    try {
+      const created = await uploadLessonAttachment(editingLesson.id, file)
+      setEditingAttachments((prev) => [...prev, created])
+    } catch {
+      setAttachError('Upload thất bại. Kiểm tra định dạng và dung lượng file (tối đa 50 MB).')
+    } finally {
+      setAttachUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId) {
+    try {
+      await deleteLessonAttachment(attachmentId)
+      setEditingAttachments((prev) => prev.filter((a) => a.id !== attachmentId))
+    } catch {
+      setAttachError('Xóa tài liệu thất bại.')
+    }
   }
 
   function saveLesson(e) {
@@ -190,7 +239,15 @@ function LessonManager({ course, onUpdateCourse, onClose }) {
                   required
                 />
               </label>
-              <label>Nội dung
+              <label>Video URL (YouTube, Vimeo...)
+                <input
+                  type="url"
+                  value={lessonForm.videoUrl || ''}
+                  onChange={(e) => setLessonForm((p) => ({ ...p, videoUrl: e.target.value }))}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+              </label>
+              <label>Nội dung / Ghi chú
                 <textarea
                   value={lessonForm.content}
                   onChange={(e) => setLessonForm((p) => ({ ...p, content: e.target.value }))}
@@ -203,6 +260,45 @@ function LessonManager({ course, onUpdateCourse, onClose }) {
                 <button type="submit" className="btnPri">Lưu bài học</button>
               </div>
             </form>
+
+            {/* Attachment management - only available for existing (saved) lessons */}
+            {editingLesson && editingLesson.id && editingLesson.id < 1e12 && (
+              <div className="attachSection">
+                <p className="attachSectionTitle">Tài liệu bài học</p>
+
+                {editingAttachments.length > 0 && (
+                  <ul className="attachList">
+                    {editingAttachments.map((a) => (
+                      <li key={a.id} className="attachItem">
+                        <a href={a.fileUrl} target="_blank" rel="noreferrer" className="attachLink">
+                          {a.fileName}
+                        </a>
+                        <span className="attachSize">{formatBytes(a.fileSize)}</span>
+                        <button
+                          type="button"
+                          className="btnSmDanger"
+                          onClick={() => handleDeleteAttachment(a.id)}
+                        >
+                          Xoa
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <label className="attachUploadLabel">
+                  {attachUploading ? 'Dang tai len...' : '+ Them tai lieu (PDF, Word, PPT, Excel...)'}
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
+                    onChange={handleUploadAttachment}
+                    disabled={attachUploading}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {attachError && <p className="formErrMsg">{attachError}</p>}
+              </div>
+            )}
           </div>
         )}
       </div>

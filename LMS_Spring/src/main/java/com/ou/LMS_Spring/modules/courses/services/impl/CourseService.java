@@ -13,6 +13,7 @@ import com.ou.LMS_Spring.Entities.Category;
 import com.ou.LMS_Spring.Entities.Course;
 import com.ou.LMS_Spring.Entities.CoursePublicationStatus;
 import com.ou.LMS_Spring.Entities.Lesson;
+import com.ou.LMS_Spring.Entities.LessonAttachment;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.Services.BaseService;
 import com.ou.LMS_Spring.modules.courses.dtos.requests.AdminCourseStatusRequest;
@@ -23,35 +24,45 @@ import com.ou.LMS_Spring.modules.courses.dtos.requests.LessonReorderRequest;
 import com.ou.LMS_Spring.modules.courses.dtos.requests.LessonUpdateRequest;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.CourseDetailResponse;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.CourseSummaryResponse;
+import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonAttachmentResponse;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonDetailResponse;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonOutlineResponse;
 import com.ou.LMS_Spring.modules.courses.repositories.CategoryRepository;
 import com.ou.LMS_Spring.modules.courses.repositories.CourseRepository;
+import com.ou.LMS_Spring.modules.courses.repositories.LessonAttachmentRepository;
 import com.ou.LMS_Spring.modules.enrollments.repositories.EnrollmentRepository;
 import com.ou.LMS_Spring.modules.courses.repositories.LessonRepository;
 import com.ou.LMS_Spring.modules.courses.services.interfaces.ICourseService;
+import com.ou.LMS_Spring.modules.system.services.impl.CloudinaryService;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class CourseService extends BaseService implements ICourseService {
 
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
+    private final LessonAttachmentRepository lessonAttachmentRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final CloudinaryService cloudinaryService;
 
     public CourseService(
             CourseRepository courseRepository,
             LessonRepository lessonRepository,
+            LessonAttachmentRepository lessonAttachmentRepository,
             CategoryRepository categoryRepository,
             UserRepository userRepository,
-            EnrollmentRepository enrollmentRepository) {
+            EnrollmentRepository enrollmentRepository,
+            CloudinaryService cloudinaryService) {
         this.courseRepository = courseRepository;
         this.lessonRepository = lessonRepository;
+        this.lessonAttachmentRepository = lessonAttachmentRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Override
@@ -83,7 +94,12 @@ public class CourseService extends BaseService implements ICourseService {
         if (!course.isActive() || course.getPublicationStatus() != CoursePublicationStatus.PUBLISHED) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found");
         }
-        return LessonDetailResponse.from(lesson);
+        List<LessonAttachmentResponse> attachments = lessonAttachmentRepository
+                .findByLesson_IdOrderByCreatedAtAsc(lessonId)
+                .stream()
+                .map(LessonAttachmentResponse::from)
+                .toList();
+        return LessonDetailResponse.from(lesson, attachments);
     }
 
     @Override
@@ -150,6 +166,9 @@ public class CourseService extends BaseService implements ICourseService {
                     "Cannot delete course with active enrollments");
         }
         List<Lesson> lessons = new ArrayList<>(lessonRepository.findByCourse_IdOrderByOrderIndexAsc(id));
+        for (Lesson l : lessons) {
+            lessonAttachmentRepository.deleteAllByLesson_Id(l.getId());
+        }
         lessonRepository.deleteAll(lessons);
         courseRepository.delete(course);
     }
@@ -166,6 +185,7 @@ public class CourseService extends BaseService implements ICourseService {
         lesson.setCourse(course);
         lesson.setTitle(request.getTitle().trim());
         lesson.setContent(request.getContent());
+        lesson.setVideoUrl(request.getVideoUrl());
         lesson.setOrderIndex(max + 1);
         Lesson saved = lessonRepository.save(lesson);
         return LessonDetailResponse.from(saved);
@@ -179,6 +199,7 @@ public class CourseService extends BaseService implements ICourseService {
         assertCourseInstructorOrAdmin(lesson.getCourse());
         lesson.setTitle(request.getTitle().trim());
         lesson.setContent(request.getContent());
+        lesson.setVideoUrl(request.getVideoUrl());
         Lesson saved = lessonRepository.save(lesson);
         return LessonDetailResponse.from(saved);
     }
@@ -190,6 +211,7 @@ public class CourseService extends BaseService implements ICourseService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found"));
         assertCourseInstructorOrAdmin(lesson.getCourse());
         Long courseId = lesson.getCourse().getId();
+        lessonAttachmentRepository.deleteAllByLesson_Id(lessonId);
         lessonRepository.delete(lesson);
         renumberLessons(courseId);
     }
@@ -258,6 +280,35 @@ public class CourseService extends BaseService implements ICourseService {
         course.setPublicationStatus(newStatus);
         Course saved = courseRepository.save(course);
         return toDetail(saved);
+    }
+
+    @Override
+    @Transactional
+    public LessonAttachmentResponse uploadAttachment(Long lessonId, MultipartFile file) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found"));
+        assertCourseInstructorOrAdmin(lesson.getCourse());
+
+        String fileUrl = cloudinaryService.uploadDocument(file);
+
+        LessonAttachment attachment = new LessonAttachment();
+        attachment.setLesson(lesson);
+        attachment.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "attachment");
+        attachment.setFileUrl(fileUrl);
+        attachment.setFileType(file.getContentType());
+        attachment.setFileSize(file.getSize());
+
+        LessonAttachment saved = lessonAttachmentRepository.save(attachment);
+        return LessonAttachmentResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAttachment(Long attachmentId) {
+        LessonAttachment attachment = lessonAttachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found"));
+        assertCourseInstructorOrAdmin(attachment.getLesson().getCourse());
+        lessonAttachmentRepository.delete(attachment);
     }
 
     private CourseDetailResponse toDetail(Course course) {

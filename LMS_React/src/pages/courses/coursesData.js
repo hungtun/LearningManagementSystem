@@ -173,5 +173,5 @@ export function emptyCoursForm() {
 }
 
 export function emptyLessonForm() {
-  return { title: '', content: '' }
+  return { title: '', content: '', videoUrl: '' }
 }

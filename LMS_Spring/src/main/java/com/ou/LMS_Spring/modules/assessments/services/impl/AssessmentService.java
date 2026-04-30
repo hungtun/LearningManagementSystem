@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ou.LMS_Spring.Entities.Assignment;
 import com.ou.LMS_Spring.Entities.AssessmentQuestionOption;
 import com.ou.LMS_Spring.Entities.AssessmentQuiz;
 import com.ou.LMS_Spring.Entities.AssessmentQuizQuestion;
@@ -30,16 +31,24 @@ import com.ou.LMS_Spring.Entities.AssignmentSubmission;
 import com.ou.LMS_Spring.Entities.Lesson;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.helpers.ApiBusinessException;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.AssignmentCreateRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.AssignmentUpdateRequest;
 import com.ou.LMS_Spring.modules.assessments.dtos.requests.InstructorGradeRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.QuizCreateRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.QuizQuestionUpsertRequest;
 import com.ou.LMS_Spring.modules.assessments.dtos.requests.QuizSubmitRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.QuizUpdateRequest;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.AssessmentQuizResponse;
+import com.ou.LMS_Spring.modules.assessments.dtos.responses.AssignmentResponse;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.AssignmentSubmitResponse;
+import com.ou.LMS_Spring.modules.assessments.dtos.responses.InstructorQuizResponse;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.InstructorSubmissionItemResponse;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.QuizSubmitResponse;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizQuestionRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizSubmissionAnswerRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizSubmissionRepository;
+import com.ou.LMS_Spring.modules.assessments.repositories.AssignmentRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssignmentSubmissionRepository;
 import com.ou.LMS_Spring.modules.assessments.services.interfaces.IAssessmentService;
 import com.ou.LMS_Spring.modules.courses.repositories.LessonRepository;
@@ -60,6 +69,7 @@ public class AssessmentService implements IAssessmentService {
     private final AssessmentQuizSubmissionRepository assessmentQuizSubmissionRepository;
     private final AssessmentQuizSubmissionAnswerRepository assessmentQuizSubmissionAnswerRepository;
     private final AssignmentSubmissionRepository assignmentSubmissionRepository;
+    private final AssignmentRepository assignmentRepository;
     private final LessonRepository lessonRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
@@ -286,6 +296,209 @@ public class AssessmentService implements IAssessmentService {
         throw invalidSubmissionType();
     }
 
+    // ---- Instructor quiz CRUD ----
+
+    @Override
+    @Transactional(readOnly = true)
+    public InstructorQuizResponse getInstructorQuizByLesson(Long lessonId) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> lessonNotFound(lessonId));
+        assertCourseInstructor(lesson.getCourse().getInstructor(), instructor);
+        AssessmentQuiz quiz = assessmentQuizRepository.findByLesson_IdAndIsActiveTrue(lessonId)
+                .orElseThrow(() -> quizNotFoundForLesson(lessonId));
+        List<AssessmentQuizQuestion> questions = assessmentQuizQuestionRepository
+                .findByQuiz_IdOrderByOrderIndexAsc(quiz.getId());
+        return InstructorQuizResponse.from(quiz, questions);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse createQuiz(QuizCreateRequest request) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
+                .orElseThrow(() -> lessonNotFound(request.getLessonId()));
+        assertCourseInstructor(lesson.getCourse().getInstructor(), instructor);
+        if (assessmentQuizRepository.findByLesson_IdAndIsActiveTrue(request.getLessonId()).isPresent()) {
+            throw quizAlreadyExists(request.getLessonId());
+        }
+        AssessmentQuiz quiz = new AssessmentQuiz();
+        quiz.setLesson(lesson);
+        quiz.setTitle(request.getTitle().trim());
+        quiz.setDescription(request.getDescription());
+        quiz.setPassScore(request.getPassScore());
+        AssessmentQuiz saved = assessmentQuizRepository.save(quiz);
+        return InstructorQuizResponse.from(saved, java.util.Collections.emptyList());
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse updateQuiz(Long quizId, QuizUpdateRequest request) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findByIdAndIsActiveTrue(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), instructor);
+        quiz.setTitle(request.getTitle().trim());
+        quiz.setDescription(request.getDescription());
+        quiz.setPassScore(request.getPassScore());
+        AssessmentQuiz saved = assessmentQuizRepository.save(quiz);
+        List<AssessmentQuizQuestion> questions = assessmentQuizQuestionRepository
+                .findByQuiz_IdOrderByOrderIndexAsc(saved.getId());
+        return InstructorQuizResponse.from(saved, questions);
+    }
+
+    @Override
+    @Transactional
+    public void deleteQuiz(Long quizId) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findByIdAndIsActiveTrue(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), instructor);
+        // Soft delete - questions remain in DB but inaccessible
+        quiz.setActive(false);
+        assessmentQuizRepository.save(quiz);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse addQuestion(Long quizId, QuizQuestionUpsertRequest request) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findByIdAndIsActiveTrue(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), instructor);
+        int nextOrder = assessmentQuizQuestionRepository.countByQuiz_Id(quizId);
+        AssessmentQuizQuestion q = new AssessmentQuizQuestion();
+        q.setQuiz(quiz);
+        q.setQuestionText(request.getQuestionText().trim());
+        q.setOptionA(request.getOptionA().trim());
+        q.setOptionB(request.getOptionB().trim());
+        q.setOptionC(request.getOptionC().trim());
+        q.setOptionD(request.getOptionD().trim());
+        q.setCorrectOption(request.getCorrectOption());
+        q.setPoint(request.getPoint());
+        q.setOrderIndex(nextOrder);
+        assessmentQuizQuestionRepository.save(q);
+        List<AssessmentQuizQuestion> questions = assessmentQuizQuestionRepository
+                .findByQuiz_IdOrderByOrderIndexAsc(quizId);
+        return InstructorQuizResponse.from(quiz, questions);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse updateQuestion(Long quizId, Long questionId, QuizQuestionUpsertRequest request) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findByIdAndIsActiveTrue(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), instructor);
+        AssessmentQuizQuestion q = assessmentQuizQuestionRepository.findById(questionId)
+                .orElseThrow(() -> questionNotFound(questionId));
+        if (!q.getQuiz().getId().equals(quizId)) {
+            throw questionNotFound(questionId);
+        }
+        q.setQuestionText(request.getQuestionText().trim());
+        q.setOptionA(request.getOptionA().trim());
+        q.setOptionB(request.getOptionB().trim());
+        q.setOptionC(request.getOptionC().trim());
+        q.setOptionD(request.getOptionD().trim());
+        q.setCorrectOption(request.getCorrectOption());
+        q.setPoint(request.getPoint());
+        assessmentQuizQuestionRepository.save(q);
+        List<AssessmentQuizQuestion> questions = assessmentQuizQuestionRepository
+                .findByQuiz_IdOrderByOrderIndexAsc(quizId);
+        return InstructorQuizResponse.from(quiz, questions);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse deleteQuestion(Long quizId, Long questionId) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findByIdAndIsActiveTrue(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), instructor);
+        AssessmentQuizQuestion q = assessmentQuizQuestionRepository.findById(questionId)
+                .orElseThrow(() -> questionNotFound(questionId));
+        if (!q.getQuiz().getId().equals(quizId)) {
+            throw questionNotFound(questionId);
+        }
+        assessmentQuizQuestionRepository.delete(q);
+        // Re-index remaining questions
+        List<AssessmentQuizQuestion> remaining = assessmentQuizQuestionRepository
+                .findByQuiz_IdOrderByOrderIndexAsc(quizId);
+        for (int i = 0; i < remaining.size(); i++) {
+            remaining.get(i).setOrderIndex(i);
+        }
+        assessmentQuizQuestionRepository.saveAll(remaining);
+        return InstructorQuizResponse.from(quiz, remaining);
+    }
+
+    // ---- Instructor assignment CRUD ----
+
+    @Override
+    @Transactional(readOnly = true)
+    public AssignmentResponse getInstructorAssignmentByLesson(Long lessonId) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> lessonNotFound(lessonId));
+        assertCourseInstructor(lesson.getCourse().getInstructor(), instructor);
+        Assignment assignment = assignmentRepository.findByLesson_IdAndIsActiveTrue(lessonId)
+                .orElseThrow(() -> assignmentNotFound(lessonId));
+        return AssignmentResponse.from(assignment);
+    }
+
+    @Override
+    @Transactional
+    public AssignmentResponse createAssignment(AssignmentCreateRequest request) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
+                .orElseThrow(() -> lessonNotFound(request.getLessonId()));
+        assertCourseInstructor(lesson.getCourse().getInstructor(), instructor);
+        if (assignmentRepository.findByLesson_IdAndIsActiveTrue(request.getLessonId()).isPresent()) {
+            throw assignmentAlreadyExists(request.getLessonId());
+        }
+        Assignment a = new Assignment();
+        a.setLesson(lesson);
+        a.setTitle(request.getTitle().trim());
+        a.setDescription(request.getDescription());
+        a.setDeadline(request.getDeadline());
+        Assignment saved = assignmentRepository.save(a);
+        return AssignmentResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public AssignmentResponse updateAssignment(Long assignmentId, AssignmentUpdateRequest request) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        Assignment a = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> assignmentNotFoundById(assignmentId));
+        assertCourseInstructor(a.getLesson().getCourse().getInstructor(), instructor);
+        a.setTitle(request.getTitle().trim());
+        a.setDescription(request.getDescription());
+        a.setDeadline(request.getDeadline());
+        return AssignmentResponse.from(assignmentRepository.save(a));
+    }
+
+    @Override
+    @Transactional
+    public void deleteAssignment(Long assignmentId) {
+        assertInstructorOrAdmin();
+        User instructor = currentUser();
+        Assignment a = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> assignmentNotFoundById(assignmentId));
+        assertCourseInstructor(a.getLesson().getCourse().getInstructor(), instructor);
+        a.setActive(false);
+        assignmentRepository.save(a);
+    }
+
     private User currentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
@@ -387,5 +600,47 @@ public class AssessmentService implements IAssessmentService {
         errors.put(ERR_CODE, "INVALID_SUBMISSION_TYPE");
         errors.put("acceptedValues", "QUIZ,ASSIGNMENT");
         return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Invalid submission type", errors));
+    }
+
+    private static ApiBusinessException quizNotFoundForLesson(Long lessonId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "QUIZ_NOT_FOUND");
+        errors.put("lessonId", String.valueOf(lessonId));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("No quiz found for this lesson", errors));
+    }
+
+    private static ApiBusinessException quizAlreadyExists(Long lessonId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "QUIZ_ALREADY_EXISTS");
+        errors.put("lessonId", String.valueOf(lessonId));
+        return new ApiBusinessException(HttpStatus.CONFLICT, new ErrorResource("A quiz already exists for this lesson", errors));
+    }
+
+    private static ApiBusinessException questionNotFound(Long questionId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "QUESTION_NOT_FOUND");
+        errors.put("questionId", String.valueOf(questionId));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("Question not found", errors));
+    }
+
+    private static ApiBusinessException assignmentNotFound(Long lessonId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "ASSIGNMENT_NOT_FOUND");
+        errors.put("lessonId", String.valueOf(lessonId));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("No assignment found for this lesson", errors));
+    }
+
+    private static ApiBusinessException assignmentNotFoundById(Long assignmentId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "ASSIGNMENT_NOT_FOUND");
+        errors.put("assignmentId", String.valueOf(assignmentId));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("Assignment not found", errors));
+    }
+
+    private static ApiBusinessException assignmentAlreadyExists(Long lessonId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "ASSIGNMENT_ALREADY_EXISTS");
+        errors.put("lessonId", String.valueOf(lessonId));
+        return new ApiBusinessException(HttpStatus.CONFLICT, new ErrorResource("An assignment already exists for this lesson", errors));
     }
 }

@@ -55,6 +55,40 @@ export async function requestJson(path, { method = 'GET', body, token } = {}) {
   return data
 }
 
+// Use for multipart/form-data uploads (do NOT set Content-Type manually - browser sets it with boundary)
+export async function requestMultipart(path, { method = 'POST', formData } = {}) {
+  const headers = {}
+  const authToken = getToken()
+  if (authToken) headers.Authorization = `Bearer ${authToken}`
+
+  const res = await fetch(path, { method, headers, body: formData })
+
+  const contentType = res.headers.get('content-type') || ''
+  let data
+  try {
+    const text = await res.text()
+    if (contentType.includes('application/json') || (text && text.startsWith('{'))) {
+      data = JSON.parse(text)
+    } else {
+      data = text || null
+    }
+  } catch {
+    data = null
+  }
+
+  if (!res.ok) {
+    const error = new Error('Upload failed')
+    error.status = res.status
+    error.data = data
+    throw error
+  }
+
+  if (data === null) return {}
+  if (typeof data !== 'object') return {}
+  if (Object.prototype.hasOwnProperty.call(data, 'data')) return data.data ?? {}
+  return data
+}
+
 // Use for binary responses (e.g. certificate download)
 export async function requestBlob(path) {
   const headers = { Accept: '*/*' }

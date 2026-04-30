@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getCourseDetail } from '../../api/coursesApi.js'
+import { getCourseDetail, getLessonDetail } from '../../api/coursesApi.js'
 import { listMyCourses } from '../../api/enrollmentsApi.js'
 import {
   createDiscussion,
@@ -68,6 +68,7 @@ function StudentLearning() {
   const [view, setView] = useState('myCourses')
   const [activeEnrollmentId, setActiveEnrollmentId] = useState(null)
   const [activeLessonId, setActiveLessonId] = useState(null)
+  const [activeLessonDetail, setActiveLessonDetail] = useState(null)
   const [certificateCourseId, setCertificateCourseId] = useState(null)
 
   async function loadEnrollments() {
@@ -102,10 +103,18 @@ function StudentLearning() {
   useEffect(() => { loadEnrollments() }, [])
 
   // ---- navigation ----
-  function openPlayer(enrollmentId, lessonId) {
+  async function openPlayer(enrollmentId, lessonId) {
     setActiveEnrollmentId(enrollmentId)
     setActiveLessonId(lessonId)
+    setActiveLessonDetail(null)
     setView('player')
+    // Fetch full lesson detail to get videoUrl and attachments
+    try {
+      const detail = await getLessonDetail(lessonId)
+      setActiveLessonDetail(detail)
+    } catch {
+      // Keep null - UI will fall back to outline data
+    }
   }
 
   function openCertificate(courseId) {
@@ -142,24 +151,42 @@ function StudentLearning() {
     }
   }
 
-  async function addDiscussion(lessonId, content, currentUser) {
+  async function addDiscussion(lessonId, content, currentUser, parentId) {
     try {
-      const created = await createDiscussion({ lessonId, content })
+      const payload = { lessonId, content }
+      if (parentId) payload.parentId = parentId
+
+      const created = await createDiscussion(payload)
       const newItem = created?.id
-        ? created
+        ? { ...created, replies: created.replies || [] }
         : {
             id: Date.now(),
             userId: currentUser?.id || 0,
             userFullName: currentUser?.fullName || 'Bạn',
+            userRole: currentUser?.role || 'STUDENT',
             lessonId,
+            parentId: parentId || null,
             content,
             createdAt: new Date().toISOString(),
             replies: [],
           }
-      setDiscussions((prev) => ({
-        ...prev,
-        [lessonId]: [newItem, ...(prev[lessonId] || [])],
-      }))
+
+      setDiscussions((prev) => {
+        const list = prev[lessonId] || []
+        if (!parentId) {
+          // New root discussion - prepend to list
+          return { ...prev, [lessonId]: [newItem, ...list] }
+        }
+        // Reply - append under the correct parent
+        return {
+          ...prev,
+          [lessonId]: list.map((d) =>
+            d.id === parentId
+              ? { ...d, replies: [...(d.replies || []), newItem] }
+              : d
+          ),
+        }
+      })
     } catch {
       // Ignore discussion creation error
     }
@@ -199,7 +226,16 @@ function StudentLearning() {
   }
 
   const activeEnrollment = enrollments.find((e) => e.id === activeEnrollmentId) || null
-  const activeLesson = activeEnrollment?.lessons?.find((l) => l.id === activeLessonId) || null
+  const baseLessonInfo = activeEnrollment?.lessons?.find((l) => l.id === activeLessonId) || null
+  // Merge full detail (videoUrl, content, attachments) over the outline data
+  const activeLesson = baseLessonInfo
+    ? {
+        ...baseLessonInfo,
+        content: activeLessonDetail?.content ?? baseLessonInfo.content,
+        videoUrl: activeLessonDetail?.videoUrl ?? null,
+        attachments: activeLessonDetail?.attachments ?? [],
+      }
+    : null
 
   if (loading) {
     return <div className="learningLoading">Đang tải khóa học...</div>
@@ -230,11 +266,11 @@ function StudentLearning() {
           activeLesson={activeLesson}
           discussions={discussions[activeLessonId] || []}
           reviews={reviews[activeEnrollment.courseId] || []}
-          onSelectLesson={(lessonId) => openPlayer(activeEnrollmentId, lessonId)}
+          onSelectLesson={(lessonId) => { loadDiscussions(lessonId); openPlayer(activeEnrollmentId, lessonId) }}
           onUpdateProgress={(lessonId, percent) =>
             updateLessonProgress(activeEnrollmentId, lessonId, percent)
           }
-          onAddDiscussion={(content, user) => addDiscussion(activeLessonId, content, user)}
+          onAddDiscussion={(content, user, parentId) => addDiscussion(activeLessonId, content, user, parentId)}
           onLoadDiscussions={() => loadDiscussions(activeLessonId)}
           onAddReview={(rating, comment, user) =>
             addReview(activeEnrollment.courseId, rating, comment, user)

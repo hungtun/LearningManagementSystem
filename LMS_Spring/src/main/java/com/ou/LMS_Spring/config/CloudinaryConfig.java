@@ -20,4 +20,7 @@ public class CloudinaryConfig {
 
     @Value("${cloudinary.folder:lms/avatars}")
     private String folder;
+
+    @Value("${cloudinary.documents-folder:lms/documents}")
+    private String documentsFolder;
 }

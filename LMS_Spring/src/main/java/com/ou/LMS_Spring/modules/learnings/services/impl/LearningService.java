@@ -35,6 +35,7 @@ import com.ou.LMS_Spring.Entities.Lesson;
 import com.ou.LMS_Spring.Entities.LessonDiscussion;
 import com.ou.LMS_Spring.Entities.LessonProgress;
 import com.ou.LMS_Spring.Entities.LessonProgressStatus;
+import com.ou.LMS_Spring.Entities.Role;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.helpers.ApiBusinessException;
 import com.ou.LMS_Spring.modules.courses.repositories.CourseRepository;
@@ -149,15 +150,33 @@ public class LearningService implements ILearningService {
         User user = currentUser();
         Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> lessonNotFound(request.getLessonId()));
-        Long courseId = lesson.getCourse().getId();
-        assertEnrolled(user.getId(), courseId);
+        if (!canParticipateInDiscussion(user, lesson)) {
+            throw notEnrolled();
+        }
 
         LessonDiscussion row = new LessonDiscussion();
         row.setUser(user);
         row.setLesson(lesson);
         row.setContent(request.getContent().trim());
+
+        // Handle reply threading (max 1 level deep)
+        if (request.getParentId() != null) {
+            LessonDiscussion parent = lessonDiscussionRepository.findById(request.getParentId())
+                    .orElseThrow(() -> discussionNotFound(request.getParentId()));
+            // Ensure the parent belongs to the same lesson and is a root discussion
+            if (!parent.getLesson().getId().equals(lesson.getId())) {
+                throw parentDiscussionMismatch();
+            }
+            if (parent.getParent() != null) {
+                throw replyDepthExceeded();
+            }
+            row.setParent(parent);
+        }
+
         LessonDiscussion saved = lessonDiscussionRepository.save(row);
-        return toDiscussionResponse(saved);
+        DiscussionResponse response = toDiscussionResponse(saved);
+        response.setReplies(java.util.Collections.emptyList());
+        return response;
     }
 
     @Override
@@ -166,11 +185,28 @@ public class LearningService implements ILearningService {
         User user = currentUser();
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> lessonNotFound(lessonId));
-        assertEnrolled(user.getId(), lesson.getCourse().getId());
+        if (!canParticipateInDiscussion(user, lesson)) {
+            throw notEnrolled();
+        }
 
-        return lessonDiscussionRepository.findByLesson_IdOrderByCreatedAtAsc(lessonId).stream()
-                .map(this::toDiscussionResponse)
-                .collect(Collectors.toList());
+        // Fetch root discussions and their replies separately for clean threading
+        List<LessonDiscussion> roots = lessonDiscussionRepository
+                .findByLesson_IdAndParentIsNullOrderByCreatedAtAsc(lessonId);
+
+        return roots.stream().map(root -> {
+            DiscussionResponse r = toDiscussionResponse(root);
+            List<DiscussionResponse> replies = lessonDiscussionRepository
+                    .findByParent_IdOrderByCreatedAtAsc(root.getId())
+                    .stream()
+                    .map(reply -> {
+                        DiscussionResponse rd = toDiscussionResponse(reply);
+                        rd.setReplies(java.util.Collections.emptyList());
+                        return rd;
+                    })
+                    .collect(Collectors.toList());
+            r.setReplies(replies);
+            return r;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -338,13 +374,37 @@ public class LearningService implements ILearningService {
 
     private DiscussionResponse toDiscussionResponse(LessonDiscussion d) {
         User u = d.getUser();
-        return new DiscussionResponse(
-                d.getId(),
-                u.getId(),
-                u.getFullName(),
-                d.getLesson().getId(),
-                d.getContent(),
-                d.getCreatedAt());
+        DiscussionResponse r = new DiscussionResponse();
+        r.setId(d.getId());
+        r.setUserId(u.getId());
+        r.setUserFullName(u.getFullName());
+        r.setUserRole(resolveUserRole(u));
+        r.setLessonId(d.getLesson().getId());
+        r.setParentId(d.getParent() != null ? d.getParent().getId() : null);
+        r.setContent(d.getContent());
+        r.setCreatedAt(d.getCreatedAt());
+        return r;
+    }
+
+    // Determine the highest-priority role name for display purposes
+    private String resolveUserRole(User user) {
+        java.util.Set<String> names = user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+        if (names.contains("ADMIN")) return "ADMIN";
+        if (names.contains("INSTRUCTOR")) return "INSTRUCTOR";
+        return "STUDENT";
+    }
+
+    // Allow enrolled students, the course instructor, or any admin to participate
+    private boolean canParticipateInDiscussion(User user, Lesson lesson) {
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName()));
+        if (isAdmin) return true;
+        Course course = lesson.getCourse();
+        boolean isInstructor = course.getInstructor() != null
+                && course.getInstructor().getId().equals(user.getId());
+        if (isInstructor) return true;
+        return enrollmentRepository.existsByUser_IdAndCourse_Id(user.getId(), course.getId());
     }
 
     private void assertEnrolled(Long userId, Long courseId) {
@@ -399,6 +459,27 @@ public class LearningService implements ILearningService {
         errors.put(ERR_CODE, "COURSE_NOT_COMPLETED");
         errors.put("message", "Complete all lessons to receive a certificate");
         return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Course not completed", errors));
+    }
+
+    private static ApiBusinessException discussionNotFound(Long discussionId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "DISCUSSION_NOT_FOUND");
+        errors.put("discussionId", String.valueOf(discussionId));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("Discussion not found", errors));
+    }
+
+    private static ApiBusinessException parentDiscussionMismatch() {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "PARENT_DISCUSSION_MISMATCH");
+        errors.put("message", "Parent discussion does not belong to the same lesson");
+        return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Parent discussion mismatch", errors));
+    }
+
+    private static ApiBusinessException replyDepthExceeded() {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "REPLY_DEPTH_EXCEEDED");
+        errors.put("message", "Cannot reply to a reply - only 1 level of threading is supported");
+        return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Reply depth exceeded", errors));
     }
 
     private static ApiBusinessException certificateBuildFailed(Exception cause) {

@@ -1,0 +1,186 @@
+.abContainer {
+  padding: 24px 0;
+  max-width: 700px;
+}
+
+.abTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 20px;
+}
+
+.abLessonRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.abLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+}
+
+.abInput {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.abInput:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.abInputDeadline {
+  max-width: 260px;
+}
+
+.abTextarea {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.abTextarea:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.abError {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: 6px;
+}
+
+.abCard {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.abCardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 16px 0;
+}
+
+.abField {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.abMsg {
+  font-size: 0.85rem;
+  color: #16a34a;
+  margin: 8px 0;
+}
+
+.abMsgError {
+  color: #ef4444;
+}
+
+.abActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.abConfirmRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.abConfirmText {
+  font-size: 0.875rem;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.abBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.abBtnPrimary {
+  background: #6366f1;
+  color: #fff;
+}
+
+.abBtnPrimary:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.abBtnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.abBtnSecondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.abBtnSecondary:hover {
+  background: #e5e7eb;
+}
+
+.abBtnDanger {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.abBtnDanger:hover {
+  background: #fecaca;
+}
+
+.abInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.abInfoItem {
+  font-size: 0.82rem;
+  color: #6b7280;
+  background: #f9fafb;
+  padding: 4px 10px;
+  border-radius: 20px;
+}

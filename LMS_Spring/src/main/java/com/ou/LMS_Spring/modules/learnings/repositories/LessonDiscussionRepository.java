@@ -11,4 +11,8 @@ import com.ou.LMS_Spring.Entities.LessonDiscussion;
 public interface LessonDiscussionRepository extends JpaRepository<LessonDiscussion, Long> {
 
     List<LessonDiscussion> findByLesson_IdOrderByCreatedAtAsc(Long lessonId);
+
+    List<LessonDiscussion> findByLesson_IdAndParentIsNullOrderByCreatedAtAsc(Long lessonId);
+
+    List<LessonDiscussion> findByParent_IdOrderByCreatedAtAsc(Long parentId);
 }

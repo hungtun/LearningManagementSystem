@@ -12,6 +12,9 @@ public class LessonUpdateRequest {
     @Size(max = 50000, message = "Content is too long")
     private String content;
 
+    @Size(max = 2048, message = "Video URL is too long")
+    private String videoUrl;
+
     public String getTitle() {
         return title;
     }
@@ -26,5 +29,13 @@ public class LessonUpdateRequest {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
     }
 }

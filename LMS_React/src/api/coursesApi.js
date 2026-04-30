@@ -1,4 +1,4 @@
-import { requestJson } from './http.js'
+import { requestJson, requestMultipart } from './http.js'
 
 const BASE = '/api/courses'
 const ADMIN_BASE = '/api/admin/courses'
@@ -48,6 +48,18 @@ export function deleteLesson(lessonId) {
 // position: number (0-based)
 export function reorderLesson(lessonId, position) {
   return requestJson(`${BASE}/lessons/${lessonId}/reorder`, { method: 'PATCH', body: { position } })
+}
+
+// Upload a document attachment to a lesson (file: File object)
+// Returns: { id, lessonId, fileName, fileUrl, fileType, fileSize, createdAt }
+export function uploadLessonAttachment(lessonId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return requestMultipart(`${BASE}/lessons/${lessonId}/attachments`, { formData })
+}
+
+export function deleteLessonAttachment(attachmentId) {
+  return requestJson(`${BASE}/lessons/attachments/${attachmentId}`, { method: 'DELETE' })
 }
 
 // ---- Admin ----

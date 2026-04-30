@@ -10,6 +10,8 @@ public class DiscussionCreateRequest {
     @NotNull
     private Long lessonId;
 
+    private Long parentId;
+
     @NotBlank
     private String content;
 }

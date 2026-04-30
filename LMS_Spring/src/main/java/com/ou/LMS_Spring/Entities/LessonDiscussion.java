@@ -19,6 +19,10 @@ public class LessonDiscussion extends BaseEntity {
     @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private LessonDiscussion parent;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
@@ -36,6 +40,14 @@ public class LessonDiscussion extends BaseEntity {
 
     public void setLesson(Lesson lesson) {
         this.lesson = lesson;
+    }
+
+    public LessonDiscussion getParent() {
+        return parent;
+    }
+
+    public void setParent(LessonDiscussion parent) {
+        this.parent = parent;
     }
 
     public String getContent() {

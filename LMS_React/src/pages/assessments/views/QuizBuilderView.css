@@ -1,0 +1,307 @@
+.qbContainer {
+  padding: 24px 0;
+  max-width: 800px;
+}
+
+.qbTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 20px;
+}
+
+.qbLessonRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.qbLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+}
+
+.qbInput {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.qbInput:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.qbInputSmall {
+  width: 100px;
+}
+
+.qbTextarea {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.qbTextarea:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.qbError {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: 6px;
+}
+
+.qbCard {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.qbCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.qbCardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 14px 0;
+}
+
+.qbCardHeader .qbCardTitle {
+  margin-bottom: 0;
+}
+
+.qbField {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.qbFieldInline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.qbLabelOption {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  min-width: 70px;
+}
+
+.qbLabelCorrect {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.qbMsg {
+  font-size: 0.85rem;
+  color: #16a34a;
+  margin: 8px 0;
+}
+
+.qbMsgError {
+  color: #ef4444;
+}
+
+.qbActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.qbConfirmRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qbConfirmText {
+  font-size: 0.875rem;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* Buttons */
+.qbBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.qbBtnPrimary {
+  background: #6366f1;
+  color: #fff;
+}
+
+.qbBtnPrimary:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.qbBtnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.qbBtnSecondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.qbBtnSecondary:hover {
+  background: #e5e7eb;
+}
+
+.qbBtnDanger {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.qbBtnDanger:hover {
+  background: #fecaca;
+}
+
+.qbBtnSm {
+  padding: 6px 14px;
+  font-size: 0.82rem;
+}
+
+.qbBtnXs {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+}
+
+/* Question list */
+.qbEmpty {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.qbQuestionList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.qbQuestionItem {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.qbQuestionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.qbQuestionIndex {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.qbQuestionPoint {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-right: auto;
+}
+
+.qbQuestionText {
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  margin: 0 0 10px 0;
+  font-weight: 500;
+  white-space: pre-wrap;
+}
+
+.qbOptionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.qbOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #374151;
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 6px 10px;
+  border: 1.5px solid transparent;
+}
+
+.qbOptionCorrect {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+  font-weight: 600;
+}
+
+.qbOptionLabel {
+  font-weight: 700;
+  min-width: 18px;
+}
+
+/* Question form */
+.qbQuestionForm {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+}
+
+.qbQuestionFormTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 14px 0;
+}

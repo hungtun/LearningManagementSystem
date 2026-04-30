@@ -3,6 +3,19 @@ import { useCurrentUser } from '../../../contexts/UserContext.jsx'
 import { calcProgressFromLessons } from '../learningData.js'
 import './LessonPlayerView.css'
 
+// Convert any YouTube/Vimeo watch URL to an embeddable iframe src
+function toEmbedUrl(url) {
+  if (!url) return null
+  // YouTube: watch?v=ID or youtu.be/ID
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`
+  // Vimeo: vimeo.com/ID
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`
+  // Already an embed URL or other direct URL - use as-is
+  return url
+}
+
 // ----- Video progress slider -----
 function VideoProgressBar({ progressPercent, onChange }) {
   return (
@@ -42,23 +55,74 @@ function StarPicker({ value, onChange }) {
   )
 }
 
+function RoleBadge({ role }) {
+  if (role === 'INSTRUCTOR') return <span className="roleBadge roleInstructor">Giảng viên</span>
+  if (role === 'ADMIN') return <span className="roleBadge roleAdmin">Quản trị</span>
+  return null
+}
+
+// Single discussion item (root or reply)
+function DiscussionItem({ item, isReply, onReply }) {
+  return (
+    <div className={isReply ? 'replyItem' : 'discussItem'}>
+      <div className={isReply ? 'replyAvatar' : 'discussAvatar'}>
+        {(item.userFullName?.[0] || 'U').toUpperCase()}
+      </div>
+      <div className="discussBody">
+        <div className="discussMeta">
+          <strong>{item.userFullName}</strong>
+          <RoleBadge role={item.userRole} />
+          <span className="discussDate">
+            {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+          </span>
+        </div>
+        <p className="discussContent">{item.content}</p>
+        {!isReply && (
+          <button type="button" className="btnReply" onClick={() => onReply(item.id, item.userFullName)}>
+            Trả lời
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ----- Discussion section -----
 function DiscussionSection({ discussions, onAdd }) {
   const [text, setText] = useState('')
+  const [replyingTo, setReplyingTo] = useState(null) // { id, userFullName }
+  const [replyText, setReplyText] = useState('')
   const { currentUser } = useCurrentUser()
 
-  function submit(e) {
+  function submitRoot(e) {
     e.preventDefault()
     if (!text.trim()) return
-    onAdd(text.trim(), currentUser)
+    onAdd(text.trim(), currentUser, null)
     setText('')
   }
 
+  function submitReply(e) {
+    e.preventDefault()
+    if (!replyText.trim() || !replyingTo) return
+    onAdd(replyText.trim(), currentUser, replyingTo.id)
+    setReplyText('')
+    setReplyingTo(null)
+  }
+
+  function cancelReply() {
+    setReplyingTo(null)
+    setReplyText('')
+  }
+
+  const totalCount = discussions.reduce(
+    (sum, d) => sum + 1 + (d.replies?.length || 0), 0
+  )
+
   return (
     <div className="discussSection">
-      <h4 className="discussTitle">Thảo luận ({discussions.length})</h4>
+      <h4 className="discussTitle">Thảo luận ({totalCount})</h4>
 
-      <form className="discussForm" onSubmit={submit}>
+      <form className="discussForm" onSubmit={submitRoot}>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -75,39 +139,45 @@ function DiscussionSection({ discussions, onAdd }) {
       ) : (
         <ul className="discussList">
           {discussions.map((item) => (
-            <li key={item.id} className="discussItem">
-              <div className="discussAvatar">
-                {(item.userFullName?.[0] || 'U').toUpperCase()}
-              </div>
-              <div className="discussBody">
-                <div className="discussMeta">
-                  <strong>{item.userFullName}</strong>
-                  <span className="discussDate">
-                    {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-                  </span>
-                </div>
-                <p className="discussContent">{item.content}</p>
-                {item.replies?.length > 0 && (
-                  <ul className="replyList">
-                    {item.replies.map((reply) => (
-                      <li key={reply.id} className="replyItem">
-                        <div className="replyAvatar">
-                          {(reply.userFullName?.[0] || 'U').toUpperCase()}
-                        </div>
-                        <div className="discussBody">
-                          <div className="discussMeta">
-                            <strong>{reply.userFullName}</strong>
-                            <span className="discussDate">
-                              {new Date(reply.createdAt).toLocaleDateString('vi-VN')}
-                            </span>
-                          </div>
-                          <p className="discussContent">{reply.content}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+            <li key={item.id}>
+              <DiscussionItem
+                item={item}
+                isReply={false}
+                onReply={(id, name) => { setReplyingTo({ id, userFullName: name }); setReplyText('') }}
+              />
+
+              {/* Inline reply form for this specific discussion */}
+              {replyingTo?.id === item.id && (
+                <form className="replyForm" onSubmit={submitReply}>
+                  <p className="replyFormLabel">
+                    Trả lời <strong>{replyingTo.userFullName}</strong>
+                  </p>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Nhập phản hồi của bạn..."
+                    rows={2}
+                    autoFocus
+                  />
+                  <div className="replyFormActions">
+                    <button type="button" className="btnCancel" onClick={cancelReply}>Hủy</button>
+                    <button type="submit" className="btnPost" disabled={!replyText.trim()}>
+                      Gửi phản hồi
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Replies thread */}
+              {item.replies?.length > 0 && (
+                <ul className="replyList">
+                  {item.replies.map((reply) => (
+                    <li key={reply.id}>
+                      <DiscussionItem item={reply} isReply={true} onReply={() => {}} />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -196,6 +266,13 @@ function ReviewSection({ reviews, onAdd, hasCompleted }) {
       )}
     </div>
   )
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 // ----- Main LessonPlayerView -----
@@ -325,11 +402,24 @@ export default function LessonPlayerView({
                 </div>
               </div>
 
-              {/* Video placeholder */}
-              <div className="videoPlaceholder">
-                <div className="videoIcon">▶</div>
-                <p>Nội dung video bài học</p>
-              </div>
+              {/* Video player */}
+              {toEmbedUrl(activeLesson.videoUrl) ? (
+                <div className="videoWrapper">
+                  <iframe
+                    src={toEmbedUrl(activeLesson.videoUrl)}
+                    title={activeLesson.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="videoFrame"
+                  />
+                </div>
+              ) : (
+                <div className="videoPlaceholder">
+                  <div className="videoIcon">▶</div>
+                  <p>Chưa có video cho bài học này.</p>
+                </div>
+              )}
 
               {/* Video progress */}
               <VideoProgressBar
@@ -367,6 +457,32 @@ export default function LessonPlayerView({
               {activeTab === 'content' && (
                 <div className="lessonContent">
                   <p>{activeLesson.content || 'Nội dung bài học sẽ hiển thị ở đây.'}</p>
+
+                  {/* Attachments list */}
+                  {activeLesson.attachments?.length > 0 && (
+                    <div className="attachmentsBlock">
+                      <p className="attachmentsTitle">Tài liệu bài học</p>
+                      <ul className="attachmentsList">
+                        {activeLesson.attachments.map((a) => (
+                          <li key={a.id} className="attachmentsItem">
+                            <a href={a.fileUrl} target="_blank" rel="noreferrer" className="attachmentsLink">
+                              <span className="attachmentsIcon">
+                                {a.fileType?.includes('pdf') ? 'PDF'
+                                  : a.fileType?.includes('word') ? 'DOC'
+                                  : a.fileType?.includes('presentation') ? 'PPT'
+                                  : a.fileType?.includes('sheet') || a.fileType?.includes('excel') ? 'XLS'
+                                  : 'FILE'}
+                              </span>
+                              <span className="attachmentsName">{a.fileName}</span>
+                              {a.fileSize && (
+                                <span className="attachmentsSize">{formatBytes(a.fileSize)}</span>
+                              )}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 

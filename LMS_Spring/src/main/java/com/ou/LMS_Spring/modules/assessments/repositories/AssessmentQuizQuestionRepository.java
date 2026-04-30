@@ -10,4 +10,8 @@ import com.ou.LMS_Spring.Entities.AssessmentQuizQuestion;
 @Repository
 public interface AssessmentQuizQuestionRepository extends JpaRepository<AssessmentQuizQuestion, Long> {
     List<AssessmentQuizQuestion> findByQuiz_IdOrderByOrderIndexAsc(Long quizId);
+
+    void deleteAllByQuiz_Id(Long quizId);
+
+    int countByQuiz_Id(Long quizId);
 }
