@@ -1,14 +1,36 @@
-export default function HeroSection() {
+export default function HeroSection({ categories, onSelectCategory }) {
+  const displayCategories = (categories || []).slice(0, 8)
+
   return (
-    <div className="udemyHero">
-      <article className="udemyHeroCard purple">
-        <h3>Bắt đầu học ngay hôm nay</h3>
-        <p>Chọn một khóa học nổi bật bên dưới để tiếp tục nâng cấp kỹ năng.</p>
-      </article>
-      <article className="udemyHeroCard cyan">
-        <h3>Khám phá lộ trình mới</h3>
-        <p>Học theo chủ đề được đề xuất từ hệ thống.</p>
-      </article>
+    <div className="heroSection">
+      <div className="heroContent">
+        <h2>Upgrade your skills with LearnHub</h2>
+        <p>
+          Learn with thousands of students. Access anytime, anywhere. Start for free today.
+        </p>
+
+        {displayCategories.length > 0 && (
+          <div className="heroCategoryLinks">
+            <button
+              className="heroCategoryChip"
+              type="button"
+              onClick={() => onSelectCategory?.(null)}
+            >
+              All
+            </button>
+            {displayCategories.map((cat) => (
+              <button
+                key={cat.id}
+                className="heroCategoryChip"
+                type="button"
+                onClick={() => onSelectCategory?.(cat.name)}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

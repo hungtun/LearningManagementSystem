@@ -1,5 +1,6 @@
 package com.ou.LMS_Spring.modules.users.repositories;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles WHERE u.id = :id")
     Optional<User> findWithRolesById(@Param("id") Long id);
+
+    List<User> findAllByIsActiveTrue();
 }

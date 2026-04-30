@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ou.LMS_Spring.modules.system.dtos.requests.BroadcastNotificationRequest;
 import com.ou.LMS_Spring.modules.system.dtos.requests.UpsertCategoryRequest;
 import com.ou.LMS_Spring.modules.system.dtos.responses.CategoryResponse;
-import com.ou.LMS_Spring.modules.system.dtos.responses.NotificationResponse;
 import com.ou.LMS_Spring.modules.system.services.interfaces.ISystemService;
 import com.ou.LMS_Spring.resources.SuccessResource;
 
@@ -50,10 +49,10 @@ public class AdminSystemController {
     }
 
     @PostMapping("/notifications/broadcast")
-    public ResponseEntity<SuccessResource<NotificationResponse>> broadcastNotification(
+    public ResponseEntity<SuccessResource<String>> broadcastNotification(
             @Valid @RequestBody BroadcastNotificationRequest request) {
-        NotificationResponse body = systemService.broadcastNotification(request);
+        systemService.broadcastNotification(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new SuccessResource<>("CREATED", body));
+                .body(new SuccessResource<>("CREATED", "Notification sent to all users"));
     }
 }

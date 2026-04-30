@@ -225,6 +225,17 @@ public class CourseService extends BaseService implements ICourseService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<CourseSummaryResponse> listMyCoursesAsInstructor() {
+        User me = currentUser();
+        return courseRepository.findByInstructor_IdOrderByUpdatedAtDesc(me.getId())
+                .stream()
+                .filter(Course::isActive)
+                .map(CourseSummaryResponse::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<CourseSummaryResponse> listPendingReview() {
         return courseRepository
                 .findByPublicationStatusOrderByUpdatedAtDesc(CoursePublicationStatus.PENDING_REVIEW).stream()

@@ -12,12 +12,14 @@ export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token)
 }
 
-export async function requestJson(path, { method = 'GET', body, token } = {}) {
+export async function requestJson(path, { method = 'GET', body, token, withAuth = true } = {}) {
   const headers = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
-  const authToken = token ?? getToken()
-  if (authToken) headers.Authorization = `Bearer ${authToken}`
+  if (withAuth) {
+    const authToken = token ?? getToken()
+    if (authToken) headers.Authorization = `Bearer ${authToken}`
+  }
 
   const res = await fetch(path, {
     method,

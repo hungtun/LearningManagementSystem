@@ -30,7 +30,7 @@ export default function ProfilePage({
       <div className="profileHeaderRow">
         <h2>My Profile</h2>
         <button type="button" className="secondaryButton" onClick={onBackHome}>
-          Quay lại trang học
+          Back to learning page
         </button>
       </div>
 
@@ -55,7 +55,7 @@ export default function ProfilePage({
             className="secondaryButton"
             onClick={() => fileInputRef.current?.click()}
           >
-            Đổi ảnh đại diện
+            Change avatar
           </button>
         </div>
 
@@ -65,7 +65,7 @@ export default function ProfilePage({
             <input value={currentUser?.email || ''} disabled />
           </label>
           <label>
-            Họ và tên
+            Full name
             <input
               value={fullName}
               onChange={(event) => setFullName(event.target.value)}
@@ -74,7 +74,7 @@ export default function ProfilePage({
             />
           </label>
           <button type="submit" className="primaryButton small" disabled={isSaving}>
-            {isSaving ? 'Đang lưu...' : 'Lưu thông tin'}
+            {isSaving ? 'Saving...' : 'Save profile'}
           </button>
         </form>
       </div>

@@ -34,6 +34,8 @@ public interface ICourseService {
 
     LessonDetailResponse reorderLesson(Long lessonId, LessonReorderRequest request);
 
+    List<CourseSummaryResponse> listMyCoursesAsInstructor();
+
     List<CourseSummaryResponse> listPendingReview();
 
     CourseDetailResponse adminUpdateStatus(Long courseId, AdminCourseStatusRequest request);

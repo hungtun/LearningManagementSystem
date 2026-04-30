@@ -1,0 +1,20 @@
+type User @table {
+  fcmToken: String!
+  createdAt: Timestamp!
+  displayName: String
+  email: String
+}
+
+type Admin @table {
+  email: String!
+  createdAt: Timestamp!
+  displayName: String
+}
+
+type Notification @table {
+  title: String!
+  message: String!
+  sentAt: Timestamp!
+  linkUrl: String
+  admin: Admin
+}

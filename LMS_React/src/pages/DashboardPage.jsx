@@ -3,62 +3,83 @@ import { logout } from '../api/auth.js'
 import { getPublishedCourseDetail, listPublishedCourses } from '../api/courses.js'
 import { createEnrollment, listMyCourses } from '../api/enrollments.js'
 import { setToken } from '../api/http.js'
-import { listNotifications } from '../api/system.js'
+import { getCourseProgress } from '../api/learnings.js'
+import { listCategories, listNotifications, markAllNotificationsRead } from '../api/system.js'
 import { getCurrentUser, updateCurrentUser, uploadCurrentUserAvatar } from '../api/users.js'
+import { useNotificationPolling } from '../hooks/useNotificationPolling.js'
 import CourseDetailSection from './dashboard/components/CourseDetailSection.jsx'
 import CourseRailSection from './dashboard/components/CourseRailSection.jsx'
 import HeroSection from './dashboard/components/HeroSection.jsx'
 import HomeFooter from './dashboard/components/HomeFooter.jsx'
 import HomeHeader from './dashboard/components/HomeHeader.jsx'
+import LearningPage from './dashboard/components/LearningPage.jsx'
 import MyCoursesPage from './dashboard/components/MyCoursesPage.jsx'
 import MyCoursesSection from './dashboard/components/MyCoursesSection.jsx'
 import ProfilePage from './dashboard/components/ProfilePage.jsx'
 import { getAccountLabel, getMessage } from './dashboard/dashboard.utils.js'
 import './DashboardPage.css'
 
-export default function DashboardPage({ onLoggedOut }) {
+export default function DashboardPage({ currentUser: currentUserProp, onLoggedOut }) {
   const [isLoading, setIsLoading] = useState(true)
   const [globalError, setGlobalError] = useState('')
   const [globalSuccess, setGlobalSuccess] = useState('')
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState(null)
   const [activeScreen, setActiveScreen] = useState('home')
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false)
   const actionMenusRef = useRef(null)
   const discoverSectionRef = useRef(null)
-  const myCoursesSectionRef = useRef(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
-  const [currentUser, setCurrentUser] = useState(null)
-  const [enrollmentForm, setEnrollmentForm] = useState({ courseId: '' })
+  const [currentUser, setCurrentUser] = useState(currentUserProp ?? null)
   const [availableCourses, setAvailableCourses] = useState([])
+  const [categories, setCategories] = useState([])
   const [selectedCourseId, setSelectedCourseId] = useState(null)
   const [selectedCourseDetail, setSelectedCourseDetail] = useState(null)
   const [isLoadingCourseDetail, setIsLoadingCourseDetail] = useState(false)
   const [myCourses, setMyCourses] = useState([])
+  const [courseProgressById, setCourseProgressById] = useState({})
   const [notifications, setNotifications] = useState([])
-  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState(currentUserProp?.avatarUrl || '')
+
+  useNotificationPolling(setNotifications)
 
   const filteredCourses = useMemo(() => {
+    let result = availableCourses
     const keyword = searchKeyword.trim().toLowerCase()
-    if (!keyword) return availableCourses
-    return availableCourses.filter((courseItem) => {
-      const title = (courseItem.title || '').toLowerCase()
-      const description = (courseItem.description || '').toLowerCase()
-      const instructorName = (courseItem.instructorName || '').toLowerCase()
-      const categoryName = (courseItem.categoryName || '').toLowerCase()
-      return (
-        title.includes(keyword) ||
-        description.includes(keyword) ||
-        instructorName.includes(keyword) ||
-        categoryName.includes(keyword)
-      )
-    })
-  }, [availableCourses, searchKeyword])
-  const featuredCourses = useMemo(() => filteredCourses.slice(0, 8), [filteredCourses])
-  const trendingCourses = useMemo(() => filteredCourses.slice(8, 16), [filteredCourses])
-  const recommendedCourses = useMemo(() => filteredCourses.slice(16, 24), [filteredCourses])
+    if (keyword) {
+      result = result.filter((c) => {
+        const title = (c.title || '').toLowerCase()
+        const desc = (c.description || '').toLowerCase()
+        const instructor = (c.instructorName || '').toLowerCase()
+        const category = (c.categoryName || '').toLowerCase()
+        return (
+          title.includes(keyword) ||
+          desc.includes(keyword) ||
+          instructor.includes(keyword) ||
+          category.includes(keyword)
+        )
+      })
+    }
+    if (selectedCategory) {
+      result = result.filter((c) => c.categoryName === selectedCategory)
+    }
+    return result
+  }, [availableCourses, searchKeyword, selectedCategory])
+
+  const pageSize = 12
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredCourses.length / pageSize)),
+    [filteredCourses.length]
+  )
+  const paginatedCourses = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredCourses.slice(start, start + pageSize)
+  }, [filteredCourses, currentPage])
+
   const enrolledCourseIds = useMemo(
-    () => new Set(myCourses.filter((course) => course?.courseId != null).map((course) => course.courseId)),
+    () => new Set(myCourses.filter((c) => c?.courseId != null).map((c) => c.courseId)),
     [myCourses]
   )
   const isSelectedCourseEnrolled = useMemo(
@@ -68,29 +89,37 @@ export default function DashboardPage({ onLoggedOut }) {
   const accountLabel = useMemo(() => getAccountLabel(currentUser), [currentUser])
 
   useEffect(() => {
-    async function loadEnrollmentHome() {
+    async function loadInitialData() {
       setIsLoading(true)
       setGlobalError('')
       try {
-        const [me, publishedCourses, myCourseData, notificationData] = await Promise.all([
-          getCurrentUser(),
-          listPublishedCourses(),
-          listMyCourses(),
-          listNotifications(),
-        ])
+        const fetchUser = currentUser ? Promise.resolve(currentUser) : getCurrentUser()
+        const [me, publishedCourses, myCourseData, categoryData, notificationData] =
+          await Promise.all([
+            fetchUser,
+            listPublishedCourses(),
+            listMyCourses(),
+            listCategories().catch(() => []),
+            listNotifications().catch(() => []),
+          ])
         setCurrentUser(me)
         setAvatarUrl(me?.avatarUrl || '')
         setAvailableCourses(Array.isArray(publishedCourses) ? publishedCourses : [])
         setMyCourses(Array.isArray(myCourseData) ? myCourseData : [])
+        setCategories(Array.isArray(categoryData) ? categoryData : [])
         setNotifications(Array.isArray(notificationData) ? notificationData : [])
       } catch (error) {
-        setGlobalError(getMessage(error, 'Không thể tải trang khóa học'))
+        if (error?.status === 401 || error?.status === 403) {
+          setToken(null)
+          onLoggedOut?.()
+          return
+        }
+        setGlobalError(getMessage(error, 'Unable to load course page'))
       } finally {
         setIsLoading(false)
       }
     }
-
-    loadEnrollmentHome()
+    loadInitialData()
   }, [])
 
   useEffect(() => {
@@ -105,11 +134,40 @@ export default function DashboardPage({ onLoggedOut }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchKeyword, selectedCategory, filteredCourses.length])
+
+  useEffect(() => {
+    async function loadCourseProgress() {
+      if (!myCourses.length) {
+        setCourseProgressById({})
+        return
+      }
+
+      const uniqueCourseIds = [...new Set(myCourses.map((course) => Number(course.courseId)).filter(Boolean))]
+      const progressEntries = await Promise.all(
+        uniqueCourseIds.map(async (courseId) => {
+          try {
+            const progress = await getCourseProgress(courseId)
+            return [courseId, progress]
+          } catch (_) {
+            return [courseId, null]
+          }
+        })
+      )
+
+      setCourseProgressById(Object.fromEntries(progressEntries))
+    }
+
+    loadCourseProgress()
+  }, [myCourses])
+
   async function handleLogout() {
     try {
       await logout()
     } catch (_) {
-      // Logout client side even if backend call fails.
+      // Logout client side even if backend call fails
     } finally {
       setToken(null)
       onLoggedOut?.()
@@ -128,47 +186,44 @@ export default function DashboardPage({ onLoggedOut }) {
 
   async function handleEnroll(event) {
     event.preventDefault()
-    if (!enrollmentForm.courseId) {
-      notifyError(null, 'Vui lòng chọn khóa học để đăng ký')
+    if (!selectedCourseId) {
+      notifyError(null, 'Please select a course to enroll')
       return
     }
     try {
-      await createEnrollment(enrollmentForm)
-      setEnrollmentForm({ courseId: '' })
-      setSelectedCourseId(null)
-      setSelectedCourseDetail(null)
+      await createEnrollment({ courseId: selectedCourseId })
       setMyCourses(await listMyCourses())
-      notifySuccess('Đăng ký khóa học thành công')
+      notifySuccess('Course enrollment successful')
     } catch (error) {
-      notifyError(error, 'Đăng ký khóa học thất bại')
+      notifyError(error, 'Course enrollment failed')
     }
   }
 
   async function handleSelectCourse(courseId) {
     setSelectedCourseId(courseId)
-    setEnrollmentForm({ courseId: String(courseId) })
     setActiveScreen('courseDetail')
     setIsLoadingCourseDetail(true)
+    setGlobalError('')
+    setGlobalSuccess('')
     try {
       const detail = await getPublishedCourseDetail(courseId)
       setSelectedCourseDetail(detail)
     } catch (error) {
       setSelectedCourseDetail(null)
-      notifyError(error, 'Không thể tải chi tiết khóa học')
+      notifyError(error, 'Unable to load course details')
     } finally {
       setIsLoadingCourseDetail(false)
     }
   }
 
   function handleStartLearning() {
-    const firstLesson = selectedCourseDetail?.lessons?.[0]
-    if (firstLesson?.id) {
-      setGlobalError('')
-      setGlobalSuccess(`Sẵn sàng vào học: bài "${firstLesson.title}"`)
+    if (!selectedCourseDetail?.lessons?.length) {
+      notifySuccess('This course has no lessons yet. Please wait for the instructor to add content.')
       return
     }
+    setActiveScreen('learning')
     setGlobalError('')
-    setGlobalSuccess('Khóa học đã đăng ký, bạn có thể vào học ngay khi có nội dung bài học')
+    setGlobalSuccess('')
   }
 
   async function handleSaveProfile({ fullName }) {
@@ -176,9 +231,9 @@ export default function DashboardPage({ onLoggedOut }) {
       const updatedUser = await updateCurrentUser({ fullName, avatarUrl })
       setCurrentUser(updatedUser)
       setAvatarUrl(updatedUser?.avatarUrl || '')
-      notifySuccess('Cập nhật hồ sơ thành công')
+      notifySuccess('Profile updated successfully')
     } catch (error) {
-      notifyError(error, 'Không thể cập nhật hồ sơ')
+      notifyError(error, 'Unable to update profile')
       throw error
     }
   }
@@ -190,89 +245,148 @@ export default function DashboardPage({ onLoggedOut }) {
       const updatedUser = await uploadCurrentUserAvatar(selectedFile)
       setCurrentUser(updatedUser)
       setAvatarUrl(updatedUser?.avatarUrl || '')
-      notifySuccess('Đã cập nhật ảnh đại diện')
+      notifySuccess('Avatar updated successfully')
     } catch (error) {
-      notifyError(error, 'Không thể cập nhật ảnh đại diện')
+      notifyError(error, 'Unable to update avatar')
     } finally {
       event.target.value = ''
     }
   }
 
+  function handleCourseProgressUpdated(updatedProgress) {
+    const courseId = Number(updatedProgress?.courseId)
+    if (!courseId) return
+    setCourseProgressById((prev) => ({
+      ...prev,
+      [courseId]: updatedProgress,
+    }))
+  }
+
   if (isLoading) {
-    return <main className="dashboardLoading">Đang tải trang khóa học...</main>
+    return <main className="dashboardLoading">Loading course page...</main>
+  }
+
+  const sharedHeaderProps = {
+    searchKeyword,
+    onSearchChange: setSearchKeyword,
+    accountLabel,
+    avatarUrl,
+    notifications,
+    isAccountMenuOpen,
+    isNotificationMenuOpen,
+    onToggleMenu: () => {
+      setIsNotificationMenuOpen(false)
+      setIsAccountMenuOpen((s) => !s)
+    },
+    onToggleNotifications: () => {
+      setIsAccountMenuOpen(false)
+      setIsNotificationMenuOpen((s) => !s)
+    },
+    unreadCount: notifications.filter((n) => !n.read).length,
+    onNotificationsRead: async () => {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+      try { await markAllNotificationsRead() } catch (_) {}
+    },
+    onGoToProfile: () => {
+      setActiveScreen('profile')
+      setIsAccountMenuOpen(false)
+    },
+    onGoToMyCourses: () => {
+      setActiveScreen('myCourses')
+      setIsAccountMenuOpen(false)
+    },
+    onGoToDiscover: () => {
+      setActiveScreen('home')
+      setIsAccountMenuOpen(false)
+      setTimeout(() => discoverSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    },
+    onLogout: () => {
+      setIsAccountMenuOpen(false)
+      setIsNotificationMenuOpen(false)
+      handleLogout()
+    },
+    actionMenusRef,
+  }
+
+  if (activeScreen === 'learning' && selectedCourseDetail) {
+    return (
+      <div className="dashboardRoot">
+        <HomeHeader {...sharedHeaderProps} />
+        {globalError ? <p className="alert error">{globalError}</p> : null}
+        {globalSuccess ? <p className="alert success">{globalSuccess}</p> : null}
+        <LearningPage
+          courseDetail={selectedCourseDetail}
+          onBack={() => setActiveScreen('courseDetail')}
+          onNotifyError={notifyError}
+          onNotifySuccess={notifySuccess}
+          onCourseProgressUpdated={handleCourseProgressUpdated}
+        />
+        <HomeFooter />
+      </div>
+    )
   }
 
   return (
-    <main className="dashboardRoot">
-      <HomeHeader
-        searchKeyword={searchKeyword}
-        onSearchChange={setSearchKeyword}
-        accountLabel={accountLabel}
-        avatarUrl={avatarUrl}
-        notifications={notifications}
-        isAccountMenuOpen={isAccountMenuOpen}
-        isNotificationMenuOpen={isNotificationMenuOpen}
-        onToggleMenu={() => {
-          setIsNotificationMenuOpen(false)
-          setIsAccountMenuOpen((oldState) => !oldState)
-        }}
-        onToggleNotifications={() => {
-          setIsAccountMenuOpen(false)
-          setIsNotificationMenuOpen((oldState) => !oldState)
-        }}
-        onGoToProfile={() => {
-          setActiveScreen('profile')
-          setIsAccountMenuOpen(false)
-        }}
-        onGoToMyCourses={() => {
-          setActiveScreen('myCourses')
-          setIsAccountMenuOpen(false)
-        }}
-        onGoToDiscover={() => {
-          setActiveScreen('home')
-          discoverSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          setIsAccountMenuOpen(false)
-        }}
-        onLogout={() => {
-          setIsAccountMenuOpen(false)
-          setIsNotificationMenuOpen(false)
-          handleLogout()
-        }}
-        actionMenusRef={actionMenusRef}
-      />
+    <div className="dashboardRoot">
+      <HomeHeader {...sharedHeaderProps} />
 
       {globalError ? <p className="alert error">{globalError}</p> : null}
       {globalSuccess ? <p className="alert success">{globalSuccess}</p> : null}
 
       {activeScreen === 'home' ? (
-        <section className="modulePanel">
-          <h2>Learning Home</h2>
-          <HeroSection />
-          <MyCoursesSection myCourses={myCourses} sectionRef={myCoursesSectionRef} />
+        <>
+          <HeroSection categories={categories} onSelectCategory={setSelectedCategory} />
 
-          <CourseRailSection
-            title="Khóa học nổi bật"
-            courses={featuredCourses.length > 0 ? featuredCourses : filteredCourses}
-            selectedCourseId={selectedCourseId}
-            onSelectCourse={handleSelectCourse}
-            tagLabel="Bestseller"
-            sectionRef={discoverSectionRef}
-          />
-          <CourseRailSection
-            title="Xu hướng tuần này"
-            courses={trendingCourses}
-            selectedCourseId={selectedCourseId}
-            onSelectCourse={handleSelectCourse}
-            tagLabel="Trending"
-          />
-          <CourseRailSection
-            title="Đề xuất cho bạn"
-            courses={recommendedCourses}
-            selectedCourseId={selectedCourseId}
-            onSelectCourse={handleSelectCourse}
-            tagLabel="Recommended"
-          />
-        </section>
+          <div className="modulePanel">
+            {myCourses.length > 0 && (
+              <MyCoursesSection
+                myCourses={myCourses}
+                courseProgressById={courseProgressById}
+                onOpenCourse={handleSelectCourse}
+              />
+            )}
+
+            <CourseRailSection
+              title="All Courses"
+              courses={paginatedCourses}
+              selectedCourseId={selectedCourseId}
+              onSelectCourse={handleSelectCourse}
+              sectionRef={discoverSectionRef}
+            />
+
+            {filteredCourses.length > pageSize ? (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: 8,
+                  gap: 12,
+                }}
+              >
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </button>
+                <p className="noteText">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </>
       ) : activeScreen === 'profile' ? (
         <ProfilePage
           currentUser={currentUser}
@@ -285,11 +399,12 @@ export default function DashboardPage({ onLoggedOut }) {
         <MyCoursesPage
           myCourses={myCourses}
           courseCatalog={availableCourses}
+          courseProgressById={courseProgressById}
           onOpenCourse={handleSelectCourse}
           onBackHome={() => setActiveScreen('home')}
         />
       ) : (
-        <section className="modulePanel">
+        <div className="modulePanel">
           <CourseDetailSection
             selectedCourseId={selectedCourseId}
             isLoadingCourseDetail={isLoadingCourseDetail}
@@ -299,9 +414,10 @@ export default function DashboardPage({ onLoggedOut }) {
             onStartLearning={handleStartLearning}
             onBackHome={() => setActiveScreen('home')}
           />
-        </section>
+        </div>
       )}
+
       <HomeFooter />
-    </main>
+    </div>
   )
 }

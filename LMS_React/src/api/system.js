@@ -28,6 +28,10 @@ export function listNotifications() {
   return requestJson('/api/system/notifications')
 }
 
+export function markAllNotificationsRead() {
+  return requestJson('/api/system/notifications/read-all', { method: 'PATCH' })
+}
+
 export function broadcastNotification({ title, content }) {
   return requestJson('/api/admin/system/notifications/broadcast', {
     method: 'POST',

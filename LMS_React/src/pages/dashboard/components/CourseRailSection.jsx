@@ -1,25 +1,44 @@
+function getCourseThumbClass(id) {
+  return `courseThumb courseThumb-${(id || 0) % 8}`
+}
+
 function CourseCard({ courseItem, selectedCourseId, onSelectCourse, tagLabel }) {
+  const isActive = selectedCourseId === courseItem.id
+  const lessonCount = courseItem.lessonCount ?? courseItem.lessons?.length ?? 0
+
   return (
     <article
-      className={selectedCourseId === courseItem.id ? 'courseCard active' : 'courseCard'}
+      className={`courseCard${isActive ? ' active' : ''}`}
       onClick={() => onSelectCourse(courseItem.id)}
       role="button"
       tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
           onSelectCourse(courseItem.id)
         }
       }}
+      aria-pressed={isActive}
     >
-      <div className="courseThumb">
-        <span className="courseLevelTag">{tagLabel}</span>
+      <div className={getCourseThumbClass(courseItem.id)}>
+        {tagLabel && (
+          <span className={`courseLevelTag${tagLabel !== 'Bestseller' ? ` ${tagLabel.toLowerCase()}` : ''}`}>
+            {tagLabel === 'trending' ? 'Trending' : tagLabel === 'recommended' ? 'Recommended' : tagLabel}
+          </span>
+        )}
       </div>
-      <h4>{courseItem.title}</h4>
-      <p>{courseItem.description || 'Khóa học chưa có mô tả'}</p>
-      <p className="cardMeta">Giảng viên: {courseItem.instructorName || 'Unknown instructor'}</p>
-      {courseItem.categoryName ? <p className="cardMeta">Danh mục: {courseItem.categoryName}</p> : null}
-      <p className="coursePrice">Free</p>
+      <div className="courseCardBody">
+        <h4 className="courseCardTitle">{courseItem.title}</h4>
+        <p className="courseCardInstructor">
+          {courseItem.instructorName || 'Unknown instructor'}
+        </p>
+        <div className="courseCardFooter">
+          <span className="courseCardMeta">
+            {lessonCount > 0 ? `${lessonCount} lessons` : courseItem.categoryName || ''}
+          </span>
+          <span className="courseCardPrice">Free</span>
+        </div>
+      </div>
     </article>
   )
 }
@@ -35,8 +54,10 @@ export default function CourseRailSection({
   if (!courses || courses.length === 0) return null
 
   return (
-    <div className="dataBlock udemyCatalogBlock" ref={sectionRef}>
-      <h3>{title}</h3>
+    <div className="courseRailBlock" ref={sectionRef}>
+      <div className="courseRailHeader">
+        <h3 className="courseRailTitle">{title}</h3>
+      </div>
       <div className="courseRail">
         {courses.map((courseItem) => (
           <CourseCard

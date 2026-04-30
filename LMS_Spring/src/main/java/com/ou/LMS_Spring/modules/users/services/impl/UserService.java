@@ -1,11 +1,15 @@
 package com.ou.LMS_Spring.modules.users.services.impl;
 
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ou.LMS_Spring.Entities.Role;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.helpers.exceptions.UserNotFoundException;
 import com.ou.LMS_Spring.Services.BaseService;
@@ -25,14 +29,18 @@ public class UserService extends BaseService implements IUserService {
 
     private User currentUser(){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-
         return userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException());
     }
+
+    private List<String> roleNames(User u) {
+        return u.getRoles().stream().map(Role::getName).collect(Collectors.toList());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public UserDto getCurrentUserProfile(){
         User u = currentUser();
-        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl());
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl(), roleNames(u));
     }
 
     @Override
@@ -46,7 +54,7 @@ public class UserService extends BaseService implements IUserService {
             u.setAvatarUrl(normalizedAvatarUrl.isEmpty() ? null : normalizedAvatarUrl);
         }
         userRepository.save(u);
-        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl());
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl(), roleNames(u));
     }
 
     @Override
@@ -56,7 +64,7 @@ public class UserService extends BaseService implements IUserService {
         String uploadedAvatarUrl = cloudinaryService.uploadAvatar(file);
         u.setAvatarUrl(uploadedAvatarUrl);
         userRepository.save(u);
-        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl());
+        return new UserDto(u.getId(), u.getEmail(), u.getFullName(), u.getAvatarUrl(), roleNames(u));
     }
 
 

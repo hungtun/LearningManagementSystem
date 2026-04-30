@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,5 +46,11 @@ public class SystemController {
     public ResponseEntity<SuccessResource<List<NotificationResponse>>> myNotifications() {
         List<NotificationResponse> data = systemService.listMyNotifications();
         return ResponseEntity.ok(new SuccessResource<>("SUCCESS", data));
+    }
+
+    @PatchMapping("/notifications/read-all")
+    public ResponseEntity<SuccessResource<String>> markAllRead() {
+        systemService.markAllNotificationsRead();
+        return ResponseEntity.ok(new SuccessResource<>("SUCCESS", "All notifications marked as read"));
     }
 }

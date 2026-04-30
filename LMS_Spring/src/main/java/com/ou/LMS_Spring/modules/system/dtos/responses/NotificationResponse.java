@@ -7,14 +7,14 @@ public class NotificationResponse {
     private Long id;
     private String title;
     private String content;
-    private boolean broadcast;
+    private boolean read;
     private LocalDateTime createdAt;
 
-    public NotificationResponse(Long id, String title, String content, boolean broadcast, LocalDateTime createdAt) {
+    public NotificationResponse(Long id, String title, String content, boolean read, LocalDateTime createdAt) {
         this.id = id;
         this.title = title;
         this.content = content;
-        this.broadcast = broadcast;
+        this.read = read;
         this.createdAt = createdAt;
     }
 
@@ -30,8 +30,8 @@ public class NotificationResponse {
         return content;
     }
 
-    public boolean isBroadcast() {
-        return broadcast;
+    public boolean isRead() {
+        return read;
     }
 
     public LocalDateTime getCreatedAt() {

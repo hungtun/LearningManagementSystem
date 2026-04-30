@@ -1,3 +1,7 @@
+function getCourseThumbClass(id) {
+  return `courseThumb courseThumb-${(id || 0) % 8}`
+}
+
 export default function CourseDetailSection({
   selectedCourseId,
   isLoadingCourseDetail,
@@ -7,74 +11,129 @@ export default function CourseDetailSection({
   onStartLearning,
   onBackHome,
 }) {
-  return (
-    <div className="dataBlock udemyDetailBlock">
-      <div className="profileHeaderRow">
-        <h3>Chi tiết khóa học</h3>
-        {onBackHome ? (
-          <button type="button" className="secondaryButton" onClick={onBackHome}>
-            Quay lại trang học
-          </button>
-        ) : null}
+  if (selectedCourseId === null) {
+    return (
+      <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+        Select a course to view details.
       </div>
-      {selectedCourseId === null ? (
-        <p className="noteText">Chọn một card khóa học để xem chi tiết và đăng ký.</p>
-      ) : isLoadingCourseDetail ? (
-        <p className="noteText">Đang tải chi tiết khóa học...</p>
-      ) : selectedCourseDetail ? (
-        <div className="courseDetailPanel">
-          <div className="courseDetailHero">
-            <div className="courseDetailHeroBody">
-              <p className="courseDetailEyebrow">Course overview</p>
-              <h4>{selectedCourseDetail.title}</h4>
-              <p>{selectedCourseDetail.description || 'Khóa học chưa có mô tả'}</p>
-              <div className="courseMetaChips">
-                <span className="metaChip">Giảng viên: {selectedCourseDetail.instructorName || 'Unknown instructor'}</span>
-                <span className="metaChip">Danh mục: {selectedCourseDetail.categoryName || 'No category'}</span>
-                <span className="metaChip">Tổng bài học: {selectedCourseDetail.lessons?.length || 0}</span>
+    )
+  }
+
+  if (isLoadingCourseDetail) {
+    return (
+      <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+        Loading course details...
+      </div>
+    )
+  }
+
+  if (!selectedCourseDetail) {
+    return (
+      <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+        No detail data available.
+      </div>
+    )
+  }
+
+  const lessonCount = selectedCourseDetail.lessons?.length || 0
+
+  return (
+    <div className="courseDetailPage">
+      {/* Dark hero band */}
+      <div className="courseDetailHeroBand">
+        <div className="courseDetailHeroInner">
+          <div>
+            <button className="courseDetailBackBtn" type="button" onClick={onBackHome}>
+              &larr; Back
+            </button>
+            <p className="courseDetailEyebrow">Course</p>
+            <h1 className="courseDetailHeroTitle">{selectedCourseDetail.title}</h1>
+            <p className="courseDetailHeroDesc">
+              {selectedCourseDetail.description || 'This course has no description yet.'}
+            </p>
+
+            <div className="courseMetaChips">
+              {selectedCourseDetail.categoryName && (
+                <span className="metaChip">{selectedCourseDetail.categoryName}</span>
+              )}
+              <span className="metaChip">{lessonCount} lessons</span>
+              <span className="metaChip">Free</span>
+            </div>
+
+            <div className="instructorInfoCard">
+              <div className="instructorAvatarFrame">
+                {selectedCourseDetail.instructorAvatarUrl ? (
+                  <img
+                    src={selectedCourseDetail.instructorAvatarUrl}
+                    alt={selectedCourseDetail.instructorName}
+                    className="instructorAvatarImage"
+                  />
+                ) : (
+                  (selectedCourseDetail.instructorName || 'G').charAt(0).toUpperCase()
+                )}
               </div>
-              <div className="instructorInfoCard">
-                <div className="instructorAvatarFrame">
-                  {selectedCourseDetail.instructorAvatarUrl ? (
-                    <img
-                      src={selectedCourseDetail.instructorAvatarUrl}
-                      alt={selectedCourseDetail.instructorName || 'Instructor avatar'}
-                      className="instructorAvatarImage"
-                    />
-                  ) : (
-                    <span className="instructorAvatarFallback">No photo</span>
-                  )}
-                </div>
-                <div className="instructorMeta">
-                  <p className="instructorLabel">Giảng viên</p>
-                  <h5>{selectedCourseDetail.instructorName || 'Unknown instructor'}</h5>
-                </div>
+              <div className="instructorMeta">
+                <p className="instructorLabel">Instructor</p>
+                <h5>{selectedCourseDetail.instructorName || 'Unknown instructor'}</h5>
               </div>
             </div>
-            <aside className="enrollSidebar">
-              <p className="enrollPrice">Free Course</p>
-              <p className="enrollSubText">Truy cập trọn đời, học mọi lúc trên mọi thiết bị.</p>
-              {isSelectedCourseEnrolled ? (
-                <button className="primaryButton fullWidth" type="button" onClick={onStartLearning}>
-                  Vào học ngay
-                </button>
-              ) : (
-                <form className="inlineEnrollForm" onSubmit={onEnroll}>
-                  <button className="primaryButton fullWidth" type="submit">
-                    Đăng ký khóa học này
-                  </button>
-                </form>
-              )}
-            </aside>
           </div>
+
+          {/* Enroll sidebar inside hero */}
+          <aside className="enrollSidebar">
+            <div className={getCourseThumbClass(selectedCourseId)}
+              style={{ height: 160, borderRadius: 6, marginBottom: 16 }} />
+            <p className="enrollPrice">Free</p>
+            <p className="enrollSubText">Lifetime access. Learn anytime, anywhere.</p>
+
+            {isSelectedCourseEnrolled ? (
+              <button className="primaryButton fullWidth" type="button" onClick={onStartLearning}>
+                Start learning
+              </button>
+            ) : (
+              <form onSubmit={onEnroll} className="inlineEnrollForm">
+                <button className="primaryButton fullWidth" type="submit">
+                  Enroll in this course
+                </button>
+              </form>
+            )}
+
+            <ul className="enrollSidebarDetails">
+              <li>
+                <span>Lessons</span>
+                <strong>{lessonCount}</strong>
+              </li>
+              <li>
+                <span>Level</span>
+                <strong>All levels</strong>
+              </li>
+              <li>
+                <span>Format</span>
+                <strong>Online</strong>
+              </li>
+              <li>
+                <span>Price</span>
+                <strong style={{ color: '#16a34a' }}>Free</strong>
+              </li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+
+      {/* Curriculum */}
+      <div className="courseDetailMain">
+        <div className="courseDetailContent">
           <div className="curriculumBlock">
-            <h5>Nội dung khóa học</h5>
+            <div className="curriculumHeader">
+              <h5>Course content</h5>
+              <span className="curriculumStats">{lessonCount} lessons</span>
+            </div>
             <ul className="lessonList">
-              {(selectedCourseDetail.lessons || []).length === 0 ? (
-                <li className="lessonEmpty">Chưa có bài học nào cho khóa học này.</li>
+              {lessonCount === 0 ? (
+                <li className="lessonEmpty">No lessons available for this course yet.</li>
               ) : (
-                (selectedCourseDetail.lessons || []).map((lesson, index) => (
-                  <li key={lesson.id}>
+                selectedCourseDetail.lessons.map((lesson, index) => (
+                  <li key={lesson.id} className="lessonItem">
                     <span className="lessonIndex">{String(index + 1).padStart(2, '0')}</span>
                     <span className="lessonTitle">{lesson.title}</span>
                   </li>
@@ -83,9 +142,10 @@ export default function CourseDetailSection({
             </ul>
           </div>
         </div>
-      ) : (
-        <p className="noteText">Không có dữ liệu chi tiết.</p>
-      )}
+
+        {/* Empty column for grid alignment on desktop */}
+        <div />
+      </div>
     </div>
   )
 }

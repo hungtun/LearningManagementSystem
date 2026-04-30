@@ -1,7 +1,9 @@
 package com.ou.LMS_Spring.Entities.seeds;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.boot.CommandLineRunner;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ou.LMS_Spring.Entities.Category;
 import com.ou.LMS_Spring.Entities.Course;
+import com.ou.LMS_Spring.Entities.CoursePublicationStatus;
 import com.ou.LMS_Spring.Entities.Enrollment;
 import com.ou.LMS_Spring.Entities.EnrollmentStatus;
 import com.ou.LMS_Spring.Entities.Lesson;
@@ -29,6 +32,8 @@ import jakarta.persistence.PersistenceContext;
 public class DbSeed implements CommandLineRunner {
 
     private static final String SAMPLE_PASSWORD = "123456";
+    private static final int BULK_COURSE_COUNT = 60;
+    private static final int MAX_DEMO_COURSE_TOTAL = 120;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -53,7 +58,8 @@ public class DbSeed implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         if (userRepository.count() > 0) {
-            System.out.println("DbSeed skipped: users table is not empty.");
+            System.out.println("DbSeed: users already exist, appending bulk demo courses...");
+            appendBulkCoursesIfPossible();
             return;
         }
 
@@ -139,6 +145,8 @@ public class DbSeed implements CommandLineRunner {
         saveProgress(student1, reactLesson1, LessonProgressStatus.NOT_STARTED, 0, null);
         saveProgress(student2, sqlLesson1, LessonProgressStatus.IN_PROGRESS, 60, null);
 
+        appendBulkCoursesIfPossible();
+
         entityManager.flush();
 
         System.out.println("DbSeed completed.");
@@ -182,6 +190,75 @@ public class DbSeed implements CommandLineRunner {
         course.setCategory(category);
         course.setInstructor(instructorUser);
         return course;
+    }
+
+    private void appendBulkCoursesIfPossible() {
+        User instructor = findAnyInstructor();
+        if (instructor == null) {
+            System.out.println("DbSeed: skip bulk courses, no instructor account found.");
+            return;
+        }
+
+        List<Category> categories = findOrCreateCategories();
+        if (categories.isEmpty()) {
+            System.out.println("DbSeed: skip bulk courses, no category available.");
+            return;
+        }
+
+        int existing = (int) courseRepository.count();
+        if (existing >= MAX_DEMO_COURSE_TOTAL) {
+            System.out.println("DbSeed: bulk courses skipped, total courses already >= " + MAX_DEMO_COURSE_TOTAL + ".");
+            return;
+        }
+
+        int toCreate = Math.min(BULK_COURSE_COUNT, MAX_DEMO_COURSE_TOTAL - existing);
+        int startIndex = existing + 1;
+
+        for (int i = 0; i < toCreate; i++) {
+            int no = startIndex + i;
+            Category category = categories.get(i % categories.size());
+
+            Course course = buildCourse(
+                    "Demo Course " + no,
+                    "Auto-generated demo content for testing large course catalogs. Course no. " + no + ".",
+                    category,
+                    instructor);
+            course.setPublicationStatus(CoursePublicationStatus.PUBLISHED);
+            course = courseRepository.save(course);
+
+            persistLesson(course, "Lesson 1 - Overview " + no, "Introduction and learning goals.", 1);
+            persistLesson(course, "Lesson 2 - Core Concepts " + no, "Main knowledge for this topic.", 2);
+            persistLesson(course, "Lesson 3 - Practice " + no, "Practice tasks and recap.", 3);
+        }
+
+        entityManager.flush();
+        System.out.println("DbSeed: appended " + toCreate + " bulk demo courses.");
+    }
+
+    private User findAnyInstructor() {
+        List<User> users = entityManager.createQuery(
+                "SELECT u FROM User u JOIN u.roles r WHERE r.name = :roleName ORDER BY u.id ASC",
+                User.class)
+                .setParameter("roleName", "INSTRUCTOR")
+                .setMaxResults(1)
+                .getResultList();
+        return users.isEmpty() ? null : users.get(0);
+    }
+
+    private List<Category> findOrCreateCategories() {
+        List<Category> categories = entityManager
+                .createQuery("SELECT c FROM Category c ORDER BY c.id ASC", Category.class)
+                .getResultList();
+        if (!categories.isEmpty()) {
+            return categories;
+        }
+
+        List<Category> created = new ArrayList<>();
+        created.add(persistCategory("Web Development", "Frontend and backend topics."));
+        created.add(persistCategory("Data & Analytics", "SQL, statistics, and visualization."));
+        created.add(persistCategory("UX & Design", "Interface design and user research."));
+        entityManager.flush();
+        return created;
     }
 
     private void persistLesson(Course course, String title, String content, int orderIndex) {

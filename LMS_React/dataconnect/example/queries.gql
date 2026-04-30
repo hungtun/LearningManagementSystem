@@ -1,0 +1,48 @@
+query GetAllNotifications @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  notifications {
+    id
+    title
+    message
+    sentAt
+    linkUrl
+    admin {
+      displayName
+      email
+    }
+  }
+}
+
+query GetAdminByEmail($email: String!) @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  admins(where: { email: { eq: $email } }) {
+    id
+    displayName
+    email
+    createdAt
+  }
+}
+
+mutation CreateNotification($title: String!, $message: String!, $linkUrl: String, $adminId: UUID!) @auth(level: USER) {
+  notification_insert(
+    data: {
+      title: $title
+      message: $message
+      linkUrl: $linkUrl
+      adminId: $adminId
+      sentAt_expr: "request.time"
+    }
+  ) {
+    id
+  }
+}
+
+mutation RegisterUserFCMToken($fcmToken: String!) @auth(level: USER) {
+  user_upsert(
+    data: {
+      id_expr: "auth.uid"
+      fcmToken: $fcmToken
+      createdAt_expr: "request.time"
+    }
+  ) {
+    id
+  }
+}

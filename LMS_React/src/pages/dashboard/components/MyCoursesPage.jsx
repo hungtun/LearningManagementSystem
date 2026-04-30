@@ -1,10 +1,21 @@
-function getProgressPercent(course) {
+function getProgressPercent(course, courseProgressById) {
+  const courseId = Number(course?.courseId)
+  const apiPercent = courseProgressById?.[courseId]?.completionPercent
+  if (typeof apiPercent === 'number' && Number.isFinite(apiPercent)) {
+    return Math.max(0, Math.min(100, Math.round(apiPercent)))
+  }
   if (course.status === 'COMPLETED') return 100
   if (course.status === 'ACTIVE') return 35
   return 0
 }
 
-export default function MyCoursesPage({ myCourses, courseCatalog, onOpenCourse, onBackHome }) {
+export default function MyCoursesPage({
+  myCourses,
+  courseCatalog,
+  courseProgressById,
+  onOpenCourse,
+  onBackHome,
+}) {
   const catalogById = new Map((courseCatalog || []).map((courseItem) => [courseItem.id, courseItem]))
 
   return (
@@ -12,18 +23,20 @@ export default function MyCoursesPage({ myCourses, courseCatalog, onOpenCourse, 
       <div className="profileHeaderRow">
         <h2>My Courses</h2>
         <button type="button" className="secondaryButton" onClick={onBackHome}>
-          Quay lại trang học
+          Back to learning page
         </button>
       </div>
 
       <div className="dataBlock myCoursesBlock">
-        <h3>Danh sách khóa học đã đăng ký</h3>
+        <h3>Enrolled courses</h3>
         {myCourses.length === 0 ? (
-          <p className="noteText">Bạn chưa đăng ký khóa học nào.</p>
+          <p className="noteText">You have not enrolled in any courses yet.</p>
         ) : (
           <ul className="myCourseCardGrid">
-            {myCourses.map((course) => (
-              <li
+            {myCourses.map((course) => {
+              const progressPercent = getProgressPercent(course, courseProgressById)
+              return (
+                <li
                 key={course.enrollmentId}
                 className="myCourseCard clickable"
                 role="button"
@@ -40,22 +53,23 @@ export default function MyCoursesPage({ myCourses, courseCatalog, onOpenCourse, 
                   <span className="courseLevelTag">Enrolled</span>
                 </div>
                 <h4>{course.courseTitle}</h4>
-                <p className="cardMeta">Trạng thái: {course.status}</p>
-                <p className="cardMeta">Ngày đăng ký: {new Date(course.enrolledAt).toLocaleDateString()}</p>
+                <p className="cardMeta">Status: {course.status}</p>
+                <p className="cardMeta">Enrollment date: {new Date(course.enrolledAt).toLocaleDateString()}</p>
                 <p className="cardMeta">
-                  Danh mục: {catalogById.get(course.courseId)?.categoryName || 'No category'}
+                  Category: {catalogById.get(course.courseId)?.categoryName || 'No category'}
                 </p>
                 <div className="myCourseProgress">
                   <div
                     className="myCourseProgressFill"
-                    style={{ width: `${getProgressPercent(course)}%` }}
+                    style={{ width: `${progressPercent}%` }}
                   />
                 </div>
                 <p className="myCourseProgressLabel">
-                  Tiến độ học tập: {getProgressPercent(course)}%
+                  Learning progress: {progressPercent}%
                 </p>
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </div>

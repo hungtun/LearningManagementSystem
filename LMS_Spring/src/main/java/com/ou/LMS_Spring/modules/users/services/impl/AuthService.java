@@ -1,18 +1,19 @@
 package com.ou.LMS_Spring.modules.users.services.impl;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
+import com.ou.LMS_Spring.Entities.Role;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.Services.BaseService;
 import com.ou.LMS_Spring.Services.JwtService;
@@ -37,6 +38,10 @@ public class AuthService extends BaseService implements IAuthService {
     private  final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
+    private List<String> roleNames(User user) {
+        return user.getRoles().stream().map(Role::getName).collect(Collectors.toList());
+    }
+
     @Override
     public LoginResponse authenticate(LoginRequest request) {
         try {
@@ -48,7 +53,7 @@ public class AuthService extends BaseService implements IAuthService {
             if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 throw new BadCredentialsException("Email or password is incorrect");
             }
-            UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl());
+            UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl(), roleNames(user));
             String token = jwtService.generateToken(user.getId(), user.getEmail());
             return new LoginResponse(token, userDto);
         } catch (BadCredentialsException e) {
@@ -56,6 +61,7 @@ public class AuthService extends BaseService implements IAuthService {
             throw e;
         }
     }
+
     @Override
     public LoginResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -66,7 +72,7 @@ public class AuthService extends BaseService implements IAuthService {
         user.setFullName(request.getFullName());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
-        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl());
+        UserDto userDto = new UserDto(user.getId(), user.getEmail(), user.getFullName(), user.getAvatarUrl(), roleNames(user));
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         return new LoginResponse(token, userDto);
     }

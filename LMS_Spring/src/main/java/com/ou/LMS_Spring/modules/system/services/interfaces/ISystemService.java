@@ -25,5 +25,7 @@ public interface ISystemService {
 
     List<NotificationResponse> listMyNotifications();
 
-    NotificationResponse broadcastNotification(BroadcastNotificationRequest request);
+    void markAllNotificationsRead();
+
+    void broadcastNotification(BroadcastNotificationRequest request);
 }

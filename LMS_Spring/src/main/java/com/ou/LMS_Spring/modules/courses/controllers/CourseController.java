@@ -43,6 +43,11 @@ public class CourseController {
         return ResponseEntity.ok(courseService.listPublishedCourses());
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<List<CourseSummaryResponse>> listMyCourses() {
+        return ResponseEntity.ok(courseService.listMyCoursesAsInstructor());
+    }
+
     @GetMapping("/lessons/{lessonId}")
     public ResponseEntity<LessonDetailResponse> getPublishedLesson(@PathVariable Long lessonId) {
         return ResponseEntity.ok(courseService.getPublishedLesson(lessonId));

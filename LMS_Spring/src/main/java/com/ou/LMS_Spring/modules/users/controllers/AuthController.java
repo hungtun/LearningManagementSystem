@@ -31,7 +31,6 @@ public class AuthController {
     private final IAuthService authService;
     private final BlacklistService blacklistService;
 
-
     @PostMapping("/login")
     public ResponseEntity<SuccessResource<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse body = authService.authenticate(request);
@@ -53,6 +52,7 @@ public class AuthController {
         blacklistService.create(request);
         return ResponseEntity.ok(new SuccessResource<>("SUCCESS", "Logged out successfully"));
     }
+
     @PostMapping("/blacklist-tokens")
     public ResponseEntity<SuccessResource<BlacklistTokenResponse>> addTokenToBlacklist(
         @Valid @RequestBody BlacklistTokenRequest request

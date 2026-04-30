@@ -46,6 +46,7 @@ import com.ou.LMS_Spring.modules.learnings.dtos.requests.ReviewCreateRequest;
 import com.ou.LMS_Spring.modules.learnings.dtos.requests.VideoProgressPatchRequest;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.CourseProgressResponse;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.DiscussionResponse;
+import com.ou.LMS_Spring.modules.learnings.dtos.responses.LessonProgressItemResponse;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.ReviewResponse;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.VideoProgressResponse;
 import com.ou.LMS_Spring.modules.learnings.repositories.CourseReviewRepository;
@@ -141,6 +142,21 @@ public class LearningService implements ILearningService {
 
         double completionPercent = Math.round(sumPercent * 10.0 / total) / 10.0;
         return new CourseProgressResponse(courseId, completionPercent, completed, total);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LessonProgressItemResponse> getLessonProgresses(Long courseId) {
+        User user = currentUser();
+        assertEnrolled(user.getId(), courseId);
+        courseRepository.findById(courseId).orElseThrow(() -> courseNotFound(courseId));
+
+        return lessonProgressRepository.findByUser_IdAndLesson_Course_Id(user.getId(), courseId).stream()
+                .map(progress -> new LessonProgressItemResponse(
+                        progress.getLesson().getId(),
+                        Math.min(100, Math.max(0, progress.getProgressPercent())),
+                        progress.getStatus()))
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -8,8 +8,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "notifications")
-public class Notification extends BaseEntity {
+@Table(name = "user_notifications")
+public class UserNotification extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
     private String title;
@@ -18,14 +22,15 @@ public class Notification extends BaseEntity {
     private String content;
 
     @Column(nullable = false)
-    private boolean broadcast = false;
-
-    @Column(nullable = false)
     private boolean isRead = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipient_user_id")
-    private User recipient;
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 
     public String getTitle() {
         return title;
@@ -41,22 +46,6 @@ public class Notification extends BaseEntity {
 
     public void setContent(String content) {
         this.content = content;
-    }
-
-    public boolean isBroadcast() {
-        return broadcast;
-    }
-
-    public void setBroadcast(boolean broadcast) {
-        this.broadcast = broadcast;
-    }
-
-    public User getRecipient() {
-        return recipient;
-    }
-
-    public void setRecipient(User recipient) {
-        this.recipient = recipient;
     }
 
     public boolean isRead() {

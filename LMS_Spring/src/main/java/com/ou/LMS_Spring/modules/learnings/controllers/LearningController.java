@@ -21,6 +21,7 @@ import com.ou.LMS_Spring.modules.learnings.dtos.requests.ReviewCreateRequest;
 import com.ou.LMS_Spring.modules.learnings.dtos.requests.VideoProgressPatchRequest;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.CourseProgressResponse;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.DiscussionResponse;
+import com.ou.LMS_Spring.modules.learnings.dtos.responses.LessonProgressItemResponse;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.ReviewResponse;
 import com.ou.LMS_Spring.modules.learnings.dtos.responses.VideoProgressResponse;
 import com.ou.LMS_Spring.modules.learnings.services.interfaces.ILearningService;
@@ -48,6 +49,13 @@ public class LearningController {
     public ResponseEntity<SuccessResource<CourseProgressResponse>> courseProgress(
             @PathVariable Long courseId) {
         CourseProgressResponse body = learningService.getCourseProgress(courseId);
+        return ResponseEntity.ok(new SuccessResource<>("SUCCESS", body));
+    }
+
+    @GetMapping("/course/{courseId}/lesson-progress")
+    public ResponseEntity<SuccessResource<List<LessonProgressItemResponse>>> lessonProgresses(
+            @PathVariable Long courseId) {
+        List<LessonProgressItemResponse> body = learningService.getLessonProgresses(courseId);
         return ResponseEntity.ok(new SuccessResource<>("SUCCESS", body));
     }
 

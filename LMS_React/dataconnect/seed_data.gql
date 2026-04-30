@@ -1,0 +1,50 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "This operation is for seeding data and will only be used by authenticated developers.") {
+  admin_insertMany(data: [
+    {
+      id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      email: "admin1@example.com",
+      displayName: "Admin User One",
+      createdAt: "2023-01-01T10:00:00Z"
+    },
+    {
+      id: "b1fcc111-2d7c-4e88-b2a0-4a8e0f6f4d22",
+      email: "admin2@example.com",
+      displayName: "Admin User Two",
+      createdAt: "2023-01-02T11:00:00Z"
+    }
+  ])
+  user_insertMany(data: [
+    {
+      id: "c2dff222-3e8d-4f99-c3b1-5b9f1g7g5e33",
+      email: "user1@example.com",
+      displayName: "Regular User One",
+      fcmToken: "fcmtoken123",
+      createdAt: "2023-01-03T12:00:00Z"
+    },
+    {
+      id: "d3gee333-4f9e-5g00-d4c2-6c0g2h8h6f44",
+      email: "user2@example.com",
+      displayName: "Regular User Two",
+      fcmToken: "fcmtoken456",
+      createdAt: "2023-01-04T13:00:00Z"
+    }
+  ])
+  notification_insertMany(data: [
+    {
+      id: "e4hff444-5g0f-6h11-e5d3-7d1h3i9i7g55",
+      title: "Welcome to LearnHub!",
+      message: "We're glad to have you here.",
+      sentAt: "2023-01-05T14:00:00Z",
+      linkUrl: "https://learnhub.example.com/welcome",
+      adminId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+    },
+    {
+      id: "f5igg555-6h1g-7i22-f6e4-8e2i4j0j8h66",
+      title: "New Course Alert!",
+      message: "Check out our latest course on GraphQL.",
+      sentAt: "2023-01-06T15:00:00Z",
+      linkUrl: "https://learnhub.example.com/courses/graphql",
+      adminId: "b1fcc111-2d7c-4e88-b2a0-4a8e0f6f4d22"
+    }
+  ])
+}

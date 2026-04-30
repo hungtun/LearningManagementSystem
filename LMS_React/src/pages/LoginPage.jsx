@@ -26,31 +26,27 @@ export default function LoginPage({ onLoginSuccess }) {
       const res =
         authMode === 'login'
           ? await login({ email: form.email, password: form.password })
-          : await register({
-              email: form.email,
-              password: form.password,
-              fullName: form.fullName,
-            })
+          : await register({ email: form.email, password: form.password, fullName: form.fullName })
       if (res?.token) setToken(res.token)
       onLoginSuccess?.(res?.user ?? null)
-      setSuccessMessage(authMode === 'login' ? 'Đăng nhập thành công' : 'Đăng ký thành công')
+      setSuccessMessage(authMode === 'login' ? 'Login successful' : 'Registration successful')
     } catch (err) {
       const data = err?.data
       let message = ''
       let errors = {}
 
       if (data && typeof data === 'object' && !Array.isArray(data)) {
-        errors = (data.errors && typeof data.errors === 'object') ? data.errors : {}
+        errors = data.errors && typeof data.errors === 'object' ? data.errors : {}
         message =
           errors.message ||
           data.message ||
           (typeof errors.general === 'string' ? errors.general : null) ||
           (Object.keys(errors).length > 0 ? Object.values(errors)[0] : '') ||
-          (authMode === 'login' ? 'Đăng nhập thất bại' : 'Đăng ký thất bại')
+          (authMode === 'login' ? 'Login failed' : 'Registration failed')
       } else if (typeof data === 'string' && data.trim()) {
         message = data.trim()
       } else {
-        message = 'Không thể kết nối máy chủ. Kiểm tra backend đang chạy tại http://localhost:8090'
+        message = 'Unable to connect to server. Please ensure backend is running at http://localhost:8090'
       }
 
       setFormErrors(errors)
@@ -60,118 +56,144 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   }
 
-  return (
-    <main className="loginScreen">
-      <section className="loginCard" aria-label="Login">
-        <header className="loginHeader">
-          <h1 className="loginTitle">{authMode === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ'}</h1>
-          <p className="loginSubtitle">
-            {authMode === 'login' ? 'Nếu bạn chưa có tài khoản' : 'Nếu bạn đã có tài khoản'}
-            <button
-              className="loginLinkButton"
-              type="button"
-              onClick={() => {
-                setAuthMode(authMode === 'login' ? 'register' : 'login')
-                setFormErrors({})
-                setErrorMessage('')
-                setSuccessMessage('')
-              }}
-            >
-              {authMode === 'login' ? ' Đăng ký tại đây' : ' Đăng nhập tại đây'}
-            </button>
-          </p>
-        </header>
+  function switchMode() {
+    setAuthMode(authMode === 'login' ? 'register' : 'login')
+    setFormErrors({})
+    setErrorMessage('')
+    setSuccessMessage('')
+    setForm({ email: '', password: '', fullName: '' })
+  }
 
-        <form className="loginForm" onSubmit={onSubmit}>
-          {authMode === 'register' ? (
-            <div className="field">
-              <label className="srOnly" htmlFor={fullNameId}>
-                Họ tên
+  return (
+    <div className="loginRoot">
+      <aside className="loginBrand">
+        <div className="loginBrandContent">
+          <div className="loginLogo">LearnHub</div>
+          <h2 className="loginBrandHeadline">Upgrade your skills with thousands of high quality courses</h2>
+          <p className="loginBrandSub">
+            Learn at your own pace. Start any course for free.
+          </p>
+          <ul className="loginFeatureList">
+            <li>Courses taught by expert instructors</li>
+            <li>Learn anytime, anywhere, on any device</li>
+            <li>Course completion certificates</li>
+            <li>Content updated regularly</li>
+          </ul>
+        </div>
+      </aside>
+
+      <main className="loginFormSide">
+        <div className="loginCard">
+          <div className="loginCardHeader">
+            <h1 className="loginCardTitle">
+              {authMode === 'login' ? 'Welcome back' : 'Create account'}
+            </h1>
+            <p className="loginCardSub">
+              {authMode === 'login'
+                ? 'Sign in to continue learning'
+                : 'Join the learning community today'}
+            </p>
+          </div>
+
+          <form className="loginForm" onSubmit={onSubmit} noValidate>
+            {authMode === 'register' && (
+              <div className="formGroup">
+                <label className="formLabel" htmlFor={fullNameId}>
+                  Full name
+                </label>
+                <input
+                  id={fullNameId}
+                  className={`formInput${formErrors.fullName ? ' formInputError' : ''}`}
+                  type="text"
+                  placeholder="John Doe"
+                  value={form.fullName}
+                  onChange={(e) => setForm((s) => ({ ...s, fullName: e.target.value }))}
+                  required
+                />
+                {formErrors.fullName && (
+                  <p className="formFieldError" role="alert">
+                    {formErrors.fullName}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="formGroup">
+              <label className="formLabel" htmlFor={emailId}>
+                Email
               </label>
               <input
-                id={fullNameId}
-                className="input"
-                type="text"
-                placeholder="Họ và tên"
-                value={form.fullName}
-                onChange={(e) => setForm((s) => ({ ...s, fullName: e.target.value }))}
+                id={emailId}
+                className={`formInput${formErrors.email ? ' formInputError' : ''}`}
+                type="email"
+                placeholder="email@example.com"
+                value={form.email}
+                onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
+                autoComplete="email"
                 required
               />
-              {formErrors.fullName ? (
-                <p className="fieldError" role="alert">
-                  {formErrors.fullName}
+              {formErrors.email && (
+                <p className="formFieldError" role="alert">
+                  {formErrors.email}
                 </p>
-              ) : null}
+              )}
             </div>
-          ) : null}
 
-          <div className="field">
-            <label className="srOnly" htmlFor={emailId}>
-              Email
-            </label>
-            <input
-              id={emailId}
-              className="input"
-              type="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
-              autoComplete="email"
-              required
-            />
-            {formErrors.email ? (
-              <p className="fieldError" role="alert">
-                {formErrors.email}
-              </p>
-            ) : null}
-          </div>
+            <div className="formGroup">
+              <label className="formLabel" htmlFor={passwordId}>
+                Password
+              </label>
+              <input
+                id={passwordId}
+                className={`formInput${formErrors.password ? ' formInputError' : ''}`}
+                type="password"
+                placeholder="Enter password"
+                value={form.password}
+                onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+                autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                required
+              />
+              {formErrors.password && (
+                <p className="formFieldError" role="alert">
+                  {formErrors.password}
+                </p>
+              )}
+            </div>
 
-          <div className="field">
-            <label className="srOnly" htmlFor={passwordId}>
-              Mật khẩu
-            </label>
-            <input
-              id={passwordId}
-              className="input"
-              type="password"
-              placeholder="Mật khẩu"
-              value={form.password}
-              onChange={(e) =>
-                setForm((s) => ({ ...s, password: e.target.value }))
-              }
-              autoComplete="current-password"
-              required
-            />
-            {formErrors.password ? (
-              <p className="fieldError" role="alert">
-                {formErrors.password}
-              </p>
-            ) : null}
-          </div>
+            {errorMessage && (
+              <div className="formAlert formAlertError" role="alert">
+                {errorMessage}
+              </div>
+            )}
+            {successMessage && (
+              <div className="formAlert formAlertSuccess" role="status">
+                {successMessage}
+              </div>
+            )}
 
-          {errorMessage ? (
-            <p className="formError" role="alert">
-              {errorMessage}
-            </p>
-          ) : null}
-          {successMessage ? (
-            <p className="formSuccess" role="status">
-              {successMessage}
-            </p>
-          ) : null}
+            <button
+              className="loginSubmitBtn"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? authMode === 'login'
+                  ? 'Signing in...'
+                  : 'Creating account...'
+                : authMode === 'login'
+                  ? 'Sign in'
+                  : 'Register for free'}
+            </button>
+          </form>
 
-          <button className="primaryButton" type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? authMode === 'login'
-                ? 'Đang đăng nhập...'
-                : 'Đang đăng ký...'
-              : authMode === 'login'
-                ? 'Đăng nhập'
-                : 'Đăng ký'}
-          </button>
-        </form>
-      </section>
-    </main>
+          <p className="loginSwitchText">
+            {authMode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+            <button type="button" className="loginSwitchBtn" onClick={switchMode}>
+              {authMode === 'login' ? ' Register now' : ' Sign in'}
+            </button>
+          </p>
+        </div>
+      </main>
+    </div>
   )
 }
-

@@ -8,8 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ou.LMS_Spring.Entities.Category;
 import com.ou.LMS_Spring.Entities.CoursePublicationStatus;
-import com.ou.LMS_Spring.Entities.Notification;
 import com.ou.LMS_Spring.Entities.User;
+import com.ou.LMS_Spring.Entities.UserNotification;
 import com.ou.LMS_Spring.Services.BaseService;
 import com.ou.LMS_Spring.helpers.exceptions.CategoryNameConflictException;
 import com.ou.LMS_Spring.helpers.exceptions.CategoryNotFoundException;
@@ -23,7 +23,7 @@ import com.ou.LMS_Spring.modules.system.dtos.responses.AdminAnalyticsResponse;
 import com.ou.LMS_Spring.modules.system.dtos.responses.CategoryResponse;
 import com.ou.LMS_Spring.modules.system.dtos.responses.InstructorAnalyticsResponse;
 import com.ou.LMS_Spring.modules.system.dtos.responses.NotificationResponse;
-import com.ou.LMS_Spring.modules.system.repositories.NotificationRepository;
+import com.ou.LMS_Spring.modules.system.repositories.UserNotificationRepository;
 import com.ou.LMS_Spring.modules.system.services.interfaces.ISystemService;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
 
@@ -39,7 +39,7 @@ public class SystemService extends BaseService implements ISystemService {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
-    private final NotificationRepository notificationRepository;
+    private final UserNotificationRepository userNotificationRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -126,8 +126,8 @@ public class SystemService extends BaseService implements ISystemService {
     @Transactional(readOnly = true)
     public List<NotificationResponse> listMyNotifications() {
         User currentUser = currentUser();
-        return notificationRepository
-                .findByIsActiveTrueAndRecipient_IdOrIsActiveTrueAndBroadcastTrueOrderByCreatedAtDesc(currentUser.getId())
+        return userNotificationRepository
+                .findByUser_IdAndIsActiveTrueOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
                 .map(this::toNotificationResponse)
                 .toList();
@@ -135,14 +135,32 @@ public class SystemService extends BaseService implements ISystemService {
 
     @Override
     @Transactional
-    public NotificationResponse broadcastNotification(BroadcastNotificationRequest request) {
-        Notification notification = new Notification();
-        notification.setTitle(request.getTitle().trim());
-        notification.setContent(request.getContent().trim());
-        notification.setBroadcast(true);
-        notification.setRecipient(null);
-        Notification saved = notificationRepository.save(notification);
-        return toNotificationResponse(saved);
+    public void markAllNotificationsRead() {
+        User currentUser = currentUser();
+        List<UserNotification> unread = userNotificationRepository
+                .findByUser_IdAndIsActiveTrueAndIsReadFalse(currentUser.getId());
+        unread.forEach(n -> n.setRead(true));
+        userNotificationRepository.saveAll(unread);
+    }
+
+    @Override
+    @Transactional
+    public void broadcastNotification(BroadcastNotificationRequest request) {
+        String title = request.getTitle().trim();
+        String content = request.getContent().trim();
+
+        List<User> activeUsers = userRepository.findAllByIsActiveTrue();
+        List<UserNotification> notifications = activeUsers.stream()
+                .map(user -> {
+                    UserNotification n = new UserNotification();
+                    n.setUser(user);
+                    n.setTitle(title);
+                    n.setContent(content);
+                    return n;
+                })
+                .toList();
+
+        userNotificationRepository.saveAll(notifications);
     }
 
     private User currentUser() {
@@ -152,9 +170,7 @@ public class SystemService extends BaseService implements ISystemService {
     }
 
     private static String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
+        if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
@@ -163,12 +179,12 @@ public class SystemService extends BaseService implements ISystemService {
         return new CategoryResponse(category.getId(), category.getName(), category.getDescription());
     }
 
-    private NotificationResponse toNotificationResponse(Notification notification) {
+    private NotificationResponse toNotificationResponse(UserNotification n) {
         return new NotificationResponse(
-                notification.getId(),
-                notification.getTitle(),
-                notification.getContent(),
-                notification.isBroadcast(),
-                notification.getCreatedAt());
+                n.getId(),
+                n.getTitle(),
+                n.getContent(),
+                n.isRead(),
+                n.getCreatedAt());
     }
 }
