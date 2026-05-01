@@ -12,4 +12,6 @@ public class DiscussionCreateRequest {
 
     @NotBlank
     private String content;
+
+    private Long parentId;
 }

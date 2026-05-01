@@ -3,7 +3,7 @@ import { logout } from '../api/auth.js'
 import { getPublishedCourseDetail, listPublishedCourses } from '../api/courses.js'
 import { createEnrollment, listMyCourses } from '../api/enrollments.js'
 import { setToken } from '../api/http.js'
-import { getCourseProgress } from '../api/learnings.js'
+import { getCourseProgress, listCourseReviews } from '../api/learnings.js'
 import { listCategories, listNotifications, markAllNotificationsRead } from '../api/system.js'
 import { getCurrentUser, updateCurrentUser, uploadCurrentUserAvatar } from '../api/users.js'
 import { useNotificationPolling } from '../hooks/useNotificationPolling.js'
@@ -38,6 +38,8 @@ export default function DashboardPage({ currentUser: currentUserProp, onLoggedOu
   const [selectedCourseId, setSelectedCourseId] = useState(null)
   const [selectedCourseDetail, setSelectedCourseDetail] = useState(null)
   const [isLoadingCourseDetail, setIsLoadingCourseDetail] = useState(false)
+  const [selectedCourseReviews, setSelectedCourseReviews] = useState([])
+  const [isLoadingCourseReviews, setIsLoadingCourseReviews] = useState(false)
   const [myCourses, setMyCourses] = useState([])
   const [courseProgressById, setCourseProgressById] = useState({})
   const [notifications, setNotifications] = useState([])
@@ -203,16 +205,23 @@ export default function DashboardPage({ currentUser: currentUserProp, onLoggedOu
     setSelectedCourseId(courseId)
     setActiveScreen('courseDetail')
     setIsLoadingCourseDetail(true)
+    setIsLoadingCourseReviews(true)
     setGlobalError('')
     setGlobalSuccess('')
     try {
-      const detail = await getPublishedCourseDetail(courseId)
+      const [detail, reviews] = await Promise.all([
+        getPublishedCourseDetail(courseId),
+        listCourseReviews(courseId).catch(() => []),
+      ])
       setSelectedCourseDetail(detail)
+      setSelectedCourseReviews(Array.isArray(reviews) ? reviews : [])
     } catch (error) {
       setSelectedCourseDetail(null)
+      setSelectedCourseReviews([])
       notifyError(error, 'Unable to load course details')
     } finally {
       setIsLoadingCourseDetail(false)
+      setIsLoadingCourseReviews(false)
     }
   }
 
@@ -409,6 +418,8 @@ export default function DashboardPage({ currentUser: currentUserProp, onLoggedOu
             selectedCourseId={selectedCourseId}
             isLoadingCourseDetail={isLoadingCourseDetail}
             selectedCourseDetail={selectedCourseDetail}
+            selectedCourseReviews={selectedCourseReviews}
+            isLoadingCourseReviews={isLoadingCourseReviews}
             onEnroll={handleEnroll}
             isSelectedCourseEnrolled={isSelectedCourseEnrolled}
             onStartLearning={handleStartLearning}

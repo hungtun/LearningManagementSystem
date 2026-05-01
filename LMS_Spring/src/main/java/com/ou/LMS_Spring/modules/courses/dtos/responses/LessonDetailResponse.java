@@ -1,5 +1,7 @@
 package com.ou.LMS_Spring.modules.courses.dtos.responses;
 
+import java.util.List;
+
 import com.ou.LMS_Spring.Entities.Lesson;
 
 public class LessonDetailResponse {
@@ -9,6 +11,8 @@ public class LessonDetailResponse {
     private String title;
     private String content;
     private int orderIndex;
+    private String videoUrl;
+    private List<LessonAttachmentResponse> attachments;
 
     public static LessonDetailResponse from(Lesson lesson) {
         LessonDetailResponse r = new LessonDetailResponse();
@@ -17,6 +21,7 @@ public class LessonDetailResponse {
         r.setTitle(lesson.getTitle());
         r.setContent(lesson.getContent());
         r.setOrderIndex(lesson.getOrderIndex());
+        r.setVideoUrl(lesson.getVideoUrl());
         return r;
     }
 
@@ -58,5 +63,21 @@ public class LessonDetailResponse {
 
     public void setOrderIndex(int orderIndex) {
         this.orderIndex = orderIndex;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
+
+    public List<LessonAttachmentResponse> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<LessonAttachmentResponse> attachments) {
+        this.attachments = attachments;
     }
 }

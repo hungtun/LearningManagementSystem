@@ -3,12 +3,15 @@ package com.ou.LMS_Spring.modules.learnings.services.impl;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.GradientPaint;
 import java.awt.RenderingHints;
+import java.awt.BasicStroke;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +30,7 @@ import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
 import com.ou.LMS_Spring.Entities.Course;
@@ -81,7 +85,7 @@ public class LearningService implements ILearningService {
         Long courseId = lesson.getCourse().getId();
         assertEnrolled(user.getId(), courseId);
 
-        int pct = Math.min(100, Math.max(0, request.getProgressPercent()));
+        int pct = normalizePercent(request.getProgressPercent());
         LessonProgress progress = lessonProgressRepository.findByUser_IdAndLesson_Id(user.getId(), lesson.getId())
                 .orElseGet(() -> {
                     LessonProgress p = new LessonProgress();
@@ -115,7 +119,7 @@ public class LearningService implements ILearningService {
     public CourseProgressResponse getCourseProgress(Long courseId) {
         User user = currentUser();
         assertEnrolled(user.getId(), courseId);
-        courseRepository.findById(courseId).orElseThrow(() -> courseNotFound(courseId));
+        assertCourseExists(courseId);
 
         List<Lesson> lessons = lessonRepository.findByCourse_IdOrderByOrderIndexAsc(courseId);
         int total = lessons.size();
@@ -132,7 +136,7 @@ public class LearningService implements ILearningService {
         int completed = 0;
         for (Lesson lesson : lessons) {
             LessonProgress p = byLessonId.get(lesson.getId());
-            int lessonPct = p == null ? 0 : Math.min(100, Math.max(0, p.getProgressPercent()));
+            int lessonPct = p == null ? 0 : normalizePercent(p.getProgressPercent());
             sumPercent += lessonPct;
             if (lessonPct >= 100
                     || (p != null && p.getStatus() == LessonProgressStatus.COMPLETED)) {
@@ -149,12 +153,12 @@ public class LearningService implements ILearningService {
     public List<LessonProgressItemResponse> getLessonProgresses(Long courseId) {
         User user = currentUser();
         assertEnrolled(user.getId(), courseId);
-        courseRepository.findById(courseId).orElseThrow(() -> courseNotFound(courseId));
+        assertCourseExists(courseId);
 
         return lessonProgressRepository.findByUser_IdAndLesson_Course_Id(user.getId(), courseId).stream()
                 .map(progress -> new LessonProgressItemResponse(
                         progress.getLesson().getId(),
-                        Math.min(100, Math.max(0, progress.getProgressPercent())),
+                        normalizePercent(progress.getProgressPercent()),
                         progress.getStatus()))
                 .collect(Collectors.toList());
     }
@@ -166,12 +170,24 @@ public class LearningService implements ILearningService {
         Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> lessonNotFound(request.getLessonId()));
         Long courseId = lesson.getCourse().getId();
-        assertEnrolled(user.getId(), courseId);
+        assertEnrolledOrInstructor(user, courseId);
 
         LessonDiscussion row = new LessonDiscussion();
         row.setUser(user);
         row.setLesson(lesson);
         row.setContent(request.getContent().trim());
+
+        if (request.getParentId() != null) {
+            LessonDiscussion parent = lessonDiscussionRepository.findById(request.getParentId())
+                    .orElseThrow(() -> discussionNotFound(request.getParentId()));
+            if (!parent.getLesson().getId().equals(lesson.getId())) {
+                throw new ApiBusinessException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        new ErrorResource("Parent discussion is not in this lesson", Map.of(ERR_CODE, "INVALID_PARENT")));
+            }
+            row.setParent(parent);
+        }
+
         LessonDiscussion saved = lessonDiscussionRepository.save(row);
         return toDiscussionResponse(saved);
     }
@@ -182,10 +198,10 @@ public class LearningService implements ILearningService {
         User user = currentUser();
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> lessonNotFound(lessonId));
-        assertEnrolled(user.getId(), lesson.getCourse().getId());
+        assertEnrolledOrInstructor(user, lesson.getCourse().getId());
 
-        return lessonDiscussionRepository.findByLesson_IdOrderByCreatedAtAsc(lessonId).stream()
-                .map(this::toDiscussionResponse)
+        return lessonDiscussionRepository.findByLesson_IdAndParentIsNullOrderByCreatedAtAsc(lessonId).stream()
+                .map(this::toDiscussionResponseTree)
                 .collect(Collectors.toList());
     }
 
@@ -214,9 +230,19 @@ public class LearningService implements ILearningService {
                 saved.getId(),
                 course.getId(),
                 user.getId(),
+                user.getFullName(),
                 saved.getRating(),
                 saved.getComment(),
                 saved.getCreatedAt());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReviewResponse> listCourseReviews(Long courseId) {
+        assertCourseExists(courseId);
+        return courseReviewRepository.findByCourse_IdOrderByCreatedAtDesc(courseId).stream()
+                .map(this::toReviewResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -263,39 +289,56 @@ public class LearningService implements ILearningService {
 
     private byte[] buildCertificatePdf(User user, Course course) {
         try {
-            Document document = new Document();
+            Document document = new Document(PageSize.A4, 48, 48, 48, 48);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PdfWriter.getInstance(document, baos);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
             document.open();
 
+            drawPdfCertificateFrame(writer);
+
+            document.add(new Paragraph(" "));
             Paragraph title = new Paragraph(
                     "Certificate of Completion",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22));
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 30, new Color(15, 23, 42)));
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             document.add(new Paragraph(" "));
 
-            Paragraph line1 = new Paragraph("This certifies that", FontFactory.getFont(FontFactory.HELVETICA, 14));
-            line1.setAlignment(Element.ALIGN_CENTER);
-            document.add(line1);
+            Paragraph subtitle = new Paragraph(
+                    "This certificate is proudly presented to",
+                    FontFactory.getFont(FontFactory.HELVETICA, 13, new Color(71, 85, 105)));
+            subtitle.setAlignment(Element.ALIGN_CENTER);
+            document.add(subtitle);
+            document.add(new Paragraph(" "));
 
-            Paragraph name = new Paragraph(user.getFullName(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16));
+            Paragraph name = new Paragraph(user.getFullName(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 28, new Color(30, 64, 175)));
             name.setAlignment(Element.ALIGN_CENTER);
             document.add(name);
+            document.add(new Paragraph(" "));
 
-            Paragraph line2 = new Paragraph("has completed the course", FontFactory.getFont(FontFactory.HELVETICA, 14));
+            Paragraph line2 = new Paragraph("for successfully completing the course", FontFactory.getFont(FontFactory.HELVETICA, 13, new Color(71, 85, 105)));
             line2.setAlignment(Element.ALIGN_CENTER);
             document.add(line2);
+            document.add(new Paragraph(" "));
 
-            Paragraph courseTitle = new Paragraph(course.getTitle(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 15));
+            Paragraph courseTitle = new Paragraph(
+                    "\"" + course.getTitle() + "\"",
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, new Color(15, 23, 42)));
             courseTitle.setAlignment(Element.ALIGN_CENTER);
             document.add(courseTitle);
 
             document.add(new Paragraph(" "));
-            String dateStr = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-            Paragraph dateLine = new Paragraph("Issued on " + dateStr, FontFactory.getFont(FontFactory.HELVETICA, 12));
+            document.add(new Paragraph(" "));
+            String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String certificateCode = "CERT-" + course.getId() + "-" + user.getId();
+
+            Paragraph dateLine = new Paragraph("Issued on " + dateStr, FontFactory.getFont(FontFactory.HELVETICA, 12, new Color(51, 65, 85)));
             dateLine.setAlignment(Element.ALIGN_CENTER);
             document.add(dateLine);
+
+            Paragraph codeLine = new Paragraph("Certificate ID: " + certificateCode, FontFactory.getFont(FontFactory.HELVETICA, 11, new Color(100, 116, 139)));
+            codeLine.setAlignment(Element.ALIGN_CENTER);
+            document.add(codeLine);
 
             document.close();
             return baos.toByteArray();
@@ -310,22 +353,49 @@ public class LearningService implements ILearningService {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setColor(Color.WHITE);
+
+        GradientPaint bg = new GradientPaint(0, 0, new Color(248, 250, 252), width, height, new Color(226, 232, 240));
+        g.setPaint(bg);
         g.fillRect(0, 0, width, height);
-        g.setColor(Color.BLACK);
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 36));
+
+        g.setColor(new Color(30, 64, 175));
+        g.setStroke(new BasicStroke(4f));
+        g.drawRoundRect(22, 22, width - 44, height - 44, 28, 28);
+        g.setColor(new Color(191, 219, 254));
+        g.setStroke(new BasicStroke(1.5f));
+        g.drawRoundRect(34, 34, width - 68, height - 68, 24, 24);
+
+        g.setColor(new Color(15, 23, 42));
+        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 40));
         drawCenteredString(g, "Certificate of Completion", width, 120);
+
+        g.setColor(new Color(71, 85, 105));
         g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
-        drawCenteredString(g, "This certifies that", width, 200);
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 28));
-        drawCenteredString(g, user.getFullName(), width, 260);
+        drawCenteredString(g, "This certificate is proudly presented to", width, 185);
+
+        g.setColor(new Color(30, 64, 175));
+        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 34));
+        drawCenteredString(g, truncate(user.getFullName(), 42), width, 250);
+
+        g.setColor(new Color(71, 85, 105));
         g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
-        drawCenteredString(g, "has completed the course", width, 320);
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 22));
-        drawCenteredString(g, truncate(course.getTitle(), 60), width, 380);
+        drawCenteredString(g, "for successfully completing the course", width, 312);
+
+        g.setColor(new Color(15, 23, 42));
+        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
+        drawCenteredString(g, "\"" + truncate(course.getTitle(), 48) + "\"", width, 365);
+
+        String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String certificateCode = "CERT-" + course.getId() + "-" + user.getId();
+
+        g.setColor(new Color(51, 65, 85));
         g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
-        String dateStr = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        drawCenteredString(g, "Issued on " + dateStr, width, 480);
+        drawCenteredString(g, "Issued on " + dateStr, width, 455);
+
+        g.setColor(new Color(100, 116, 139));
+        g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
+        drawCenteredString(g, "Certificate ID: " + certificateCode, width, 490);
+
         g.dispose();
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -342,6 +412,20 @@ public class LearningService implements ILearningService {
         g.drawString(text, x, y);
     }
 
+    private static void drawPdfCertificateFrame(PdfWriter writer) {
+        com.lowagie.text.pdf.PdfContentByte cb = writer.getDirectContent();
+        cb.saveState();
+        cb.setColorStroke(new Color(30, 64, 175));
+        cb.setLineWidth(3f);
+        cb.roundRectangle(30, 30, PageSize.A4.getWidth() - 60, PageSize.A4.getHeight() - 60, 20);
+        cb.stroke();
+        cb.setColorStroke(new Color(191, 219, 254));
+        cb.setLineWidth(1.2f);
+        cb.roundRectangle(40, 40, PageSize.A4.getWidth() - 80, PageSize.A4.getHeight() - 80, 16);
+        cb.stroke();
+        cb.restoreState();
+    }
+
     private static String truncate(String s, int maxLen) {
         if (s == null) {
             return "";
@@ -354,17 +438,68 @@ public class LearningService implements ILearningService {
 
     private DiscussionResponse toDiscussionResponse(LessonDiscussion d) {
         User u = d.getUser();
+        String role = u.getRoles().stream()
+                .map(r -> r.getName())
+                .findFirst()
+                .orElse("STUDENT");
+        Long parentId = d.getParent() != null ? d.getParent().getId() : null;
         return new DiscussionResponse(
                 d.getId(),
                 u.getId(),
                 u.getFullName(),
+                role,
                 d.getLesson().getId(),
+                parentId,
                 d.getContent(),
-                d.getCreatedAt());
+                d.getCreatedAt(),
+                null);
+    }
+
+    private ReviewResponse toReviewResponse(CourseReview r) {
+        return new ReviewResponse(
+                r.getId(),
+                r.getCourse().getId(),
+                r.getUser().getId(),
+                r.getUser().getFullName(),
+                r.getRating(),
+                r.getComment(),
+                r.getCreatedAt());
+    }
+
+    private void assertCourseExists(Long courseId) {
+        courseRepository.findById(courseId).orElseThrow(() -> courseNotFound(courseId));
+    }
+
+    private int normalizePercent(int value) {
+        return Math.min(100, Math.max(0, value));
+    }
+
+    private DiscussionResponse toDiscussionResponseTree(LessonDiscussion d) {
+        DiscussionResponse response = toDiscussionResponse(d);
+        List<DiscussionResponse> replies = d.getReplies().stream()
+                .sorted(Comparator.comparing(r -> r.getCreatedAt()))
+                .map(this::toDiscussionResponseTree)
+                .collect(Collectors.toList());
+        response.setReplies(replies);
+        return response;
     }
 
     private void assertEnrolled(Long userId, Long courseId) {
         if (!enrollmentRepository.existsByUser_IdAndCourse_Id(userId, courseId)) {
+            throw notEnrolled();
+        }
+    }
+
+    private void assertEnrolledOrInstructor(User user, Long courseId) {
+        boolean isInstructor = user.getRoles().stream()
+                .anyMatch(r -> {
+                    String roleName = r.getName();
+                    return "ROLE_INSTRUCTOR".equals(roleName)
+                            || "INSTRUCTOR".equals(roleName)
+                            || "ROLE_ADMIN".equals(roleName)
+                            || "ADMIN".equals(roleName);
+                });
+        if (!isInstructor && !enrollmentRepository.existsByUser_IdAndCourse_Id(user.getId(), courseId)) {
             throw notEnrolled();
         }
     }
@@ -415,6 +550,13 @@ public class LearningService implements ILearningService {
         errors.put(ERR_CODE, "COURSE_NOT_COMPLETED");
         errors.put("message", "Complete all lessons to receive a certificate");
         return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Course not completed", errors));
+    }
+
+    private static ApiBusinessException discussionNotFound(Long id) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "DISCUSSION_NOT_FOUND");
+        errors.put("id", String.valueOf(id));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("Discussion not found", errors));
     }
 
     private static ApiBusinessException certificateBuildFailed(Exception cause) {

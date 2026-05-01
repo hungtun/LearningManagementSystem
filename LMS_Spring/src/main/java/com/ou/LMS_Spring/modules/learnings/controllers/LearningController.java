@@ -82,6 +82,13 @@ public class LearningController {
                 .body(new SuccessResource<>("CREATED", body));
     }
 
+    @GetMapping("/reviews/course/{courseId}")
+    public ResponseEntity<SuccessResource<List<ReviewResponse>>> listCourseReviews(
+            @PathVariable Long courseId) {
+        List<ReviewResponse> body = learningService.listCourseReviews(courseId);
+        return ResponseEntity.ok(new SuccessResource<>("SUCCESS", body));
+    }
+
     @GetMapping("/certificate/{courseId}")
     public ResponseEntity<byte[]> certificate(
             @PathVariable Long courseId,

@@ -6,6 +6,8 @@ export default function CourseDetailSection({
   selectedCourseId,
   isLoadingCourseDetail,
   selectedCourseDetail,
+  selectedCourseReviews,
+  isLoadingCourseReviews,
   onEnroll,
   isSelectedCourseEnrolled,
   onStartLearning,
@@ -36,6 +38,10 @@ export default function CourseDetailSection({
   }
 
   const lessonCount = selectedCourseDetail.lessons?.length || 0
+  const reviews = Array.isArray(selectedCourseReviews) ? selectedCourseReviews : []
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviews.length)
+    : 0
 
   return (
     <div className="courseDetailPage">
@@ -140,6 +146,39 @@ export default function CourseDetailSection({
                 ))
               )}
             </ul>
+          </div>
+
+          <div className="curriculumBlock" style={{ marginTop: 16 }}>
+            <div className="curriculumHeader">
+              <h5>Public reviews</h5>
+              <span className="curriculumStats">
+                {reviews.length > 0 ? `${avgRating.toFixed(1)}/5` : 'No ratings yet'}
+              </span>
+            </div>
+            {isLoadingCourseReviews ? (
+              <p className="lessonEmpty">Loading reviews...</p>
+            ) : reviews.length === 0 ? (
+              <p className="lessonEmpty">No public reviews yet.</p>
+            ) : (
+              <ul className="lessonList">
+                {reviews.map((review) => (
+                  <li key={review.id} className="lessonItem" style={{ display: 'block' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <strong style={{ fontSize: 14 }}>{review.userFullName || 'Student'}</strong>
+                      <span style={{ fontSize: 13, color: '#374151' }}>{Number(review.rating || 0)}/5</span>
+                    </div>
+                    {review.comment ? (
+                      <p style={{ marginTop: 6, marginBottom: 6, color: '#4b5563', fontSize: 13 }}>{review.comment}</p>
+                    ) : (
+                      <p style={{ marginTop: 6, marginBottom: 6, color: '#9ca3af', fontSize: 13 }}>No comment.</p>
+                    )}
+                    <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                      {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
