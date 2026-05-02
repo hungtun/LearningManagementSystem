@@ -19,10 +19,10 @@ export function listDiscussions(lessonId) {
   return requestJson(`/api/learnings/discussions/${lessonId}`)
 }
 
-export function createDiscussion({ lessonId, content }) {
+export function createDiscussion({ lessonId, content, parentId }) {
   return requestJson('/api/learnings/discussions', {
     method: 'POST',
-    body: { lessonId: Number(lessonId), content },
+    body: { lessonId: Number(lessonId), content, parentId: parentId ? Number(parentId) : null },
   })
 }
 
@@ -31,6 +31,10 @@ export function createReview({ courseId, rating, comment }) {
     method: 'POST',
     body: { courseId: Number(courseId), rating: Number(rating), comment: comment || '' },
   })
+}
+
+export function listCourseReviews(courseId) {
+  return requestJson(`/api/learnings/reviews/course/${courseId}`)
 }
 
 export function getCertificateUrl(courseId, format) {

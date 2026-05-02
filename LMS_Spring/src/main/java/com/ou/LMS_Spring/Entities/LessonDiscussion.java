@@ -6,6 +6,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.OneToMany;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "lesson_discussions")
@@ -21,6 +24,13 @@ public class LessonDiscussion extends BaseEntity {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private LessonDiscussion parent;
+
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+    private List<LessonDiscussion> replies = new ArrayList<>();
 
     public User getUser() {
         return user;
@@ -44,5 +54,21 @@ public class LessonDiscussion extends BaseEntity {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public LessonDiscussion getParent() {
+        return parent;
+    }
+
+    public void setParent(LessonDiscussion parent) {
+        this.parent = parent;
+    }
+
+    public List<LessonDiscussion> getReplies() {
+        return replies;
+    }
+
+    public void setReplies(List<LessonDiscussion> replies) {
+        this.replies = replies;
     }
 }

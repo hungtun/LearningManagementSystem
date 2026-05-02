@@ -3,6 +3,7 @@ package com.ou.LMS_Spring.modules.courses.controllers;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ou.LMS_Spring.modules.courses.dtos.requests.CourseCreateRequest;
 import com.ou.LMS_Spring.modules.courses.dtos.requests.CourseUpdateRequest;
@@ -22,6 +25,7 @@ import com.ou.LMS_Spring.modules.courses.dtos.requests.LessonReorderRequest;
 import com.ou.LMS_Spring.modules.courses.dtos.requests.LessonUpdateRequest;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.CourseDetailResponse;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.CourseSummaryResponse;
+import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonAttachmentResponse;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonDetailResponse;
 import com.ou.LMS_Spring.modules.courses.services.interfaces.ICourseService;
 
@@ -53,9 +57,19 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getPublishedLesson(lessonId));
     }
 
+    @GetMapping("/my/lessons/{lessonId}")
+    public ResponseEntity<LessonDetailResponse> getMyLesson(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(courseService.getMyLessonDetail(lessonId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CourseDetailResponse> getPublishedDetail(@PathVariable Long id) {
         return ResponseEntity.ok(courseService.getPublishedCourseDetail(id));
+    }
+
+    @GetMapping("/my/{id}")
+    public ResponseEntity<CourseDetailResponse> getMyCourseDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getMyCourseDetail(id));
     }
 
     @PostMapping
@@ -99,5 +113,19 @@ public class CourseController {
     public ResponseEntity<LessonDetailResponse> reorderLesson(@PathVariable Long lessonId,
             @Valid @RequestBody LessonReorderRequest request) {
         return ResponseEntity.ok(courseService.reorderLesson(lessonId, request));
+    }
+
+    @PostMapping(value = "/lessons/{lessonId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<LessonAttachmentResponse> uploadAttachment(
+            @PathVariable Long lessonId,
+            @RequestPart("file") MultipartFile file) {
+        LessonAttachmentResponse body = courseService.uploadAttachment(lessonId, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    @DeleteMapping("/lessons/attachments/{attachmentId}")
+    public ResponseEntity<Void> deleteAttachment(@PathVariable Long attachmentId) {
+        courseService.deleteAttachment(attachmentId);
+        return ResponseEntity.noContent().build();
     }
 }

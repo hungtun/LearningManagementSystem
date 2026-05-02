@@ -27,6 +27,45 @@ public class CloudinaryService {
 
     private final CloudinaryConfig cloudinaryConfig;
 
+    public String uploadFile(MultipartFile file, String subFolder) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is required");
+        }
+
+        validateCloudinaryConfig();
+
+        long timestamp = Instant.now().getEpochSecond();
+        String baseFolder = cloudinaryConfig.getFolder();
+        String folder = (baseFolder != null && !baseFolder.isBlank())
+                ? baseFolder + "/" + subFolder
+                : subFolder;
+
+        Map<String, String> signParams = new HashMap<>();
+        signParams.put("timestamp", String.valueOf(timestamp));
+        signParams.put("folder", folder);
+
+        String signature = createSignature(signParams, cloudinaryConfig.getApiSecret());
+        String endpoint = String.format("https://api.cloudinary.com/v1_1/%s/raw/upload", cloudinaryConfig.getCloudName());
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("api_key", cloudinaryConfig.getApiKey());
+        body.add("timestamp", String.valueOf(timestamp));
+        body.add("signature", signature);
+        body.add("folder", folder);
+        body.add("file", toResource(file));
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, createMultipartHeaders());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> response = restTemplate.postForObject(endpoint, request, Map.class);
+        if (response == null || response.get("secure_url") == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Cloudinary upload failed");
+        }
+
+        return response.get("secure_url").toString();
+    }
+
     public String uploadAvatar(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Avatar file is required");

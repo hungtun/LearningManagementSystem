@@ -6,15 +6,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "assessment_quizzes")
-public class AssessmentQuiz extends BaseEntity {
+@Table(name = "assessment_assignments")
+public class AssessmentAssignment extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id", nullable = false, unique = true)
     private Lesson lesson;
 
     @Column(nullable = false)
@@ -24,12 +24,12 @@ public class AssessmentQuiz extends BaseEntity {
     private String description;
 
     @Column(nullable = false)
-    private Integer passScore = 0;
+    private int maxScore = 100;
 
-    @Column
+    @Column(nullable = false)
     private LocalDateTime startAt;
 
-    @Column
+    @Column(nullable = false)
     private LocalDateTime endAt;
 
     public Lesson getLesson() {
@@ -56,12 +56,12 @@ public class AssessmentQuiz extends BaseEntity {
         this.description = description;
     }
 
-    public Integer getPassScore() {
-        return passScore;
+    public int getMaxScore() {
+        return maxScore;
     }
 
-    public void setPassScore(Integer passScore) {
-        this.passScore = passScore;
+    public void setMaxScore(int maxScore) {
+        this.maxScore = maxScore;
     }
 
     public LocalDateTime getStartAt() {

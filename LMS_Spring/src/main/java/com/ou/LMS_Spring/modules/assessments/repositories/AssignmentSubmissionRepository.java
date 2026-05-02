@@ -10,4 +10,6 @@ import com.ou.LMS_Spring.Entities.AssignmentSubmission;
 @Repository
 public interface AssignmentSubmissionRepository extends JpaRepository<AssignmentSubmission, Long> {
     List<AssignmentSubmission> findByLesson_Course_Instructor_IdOrderBySubmittedAtDesc(Long instructorId);
+
+    long deleteByLesson_Id(Long lessonId);
 }

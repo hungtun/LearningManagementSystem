@@ -24,6 +24,9 @@ public class Lesson extends BaseEntity {
     @Column(nullable = false)
     private int orderIndex;
 
+    @Column
+    private String videoUrl;
+
     public Course getCourse() {
         return course;
     }
@@ -54,6 +57,14 @@ public class Lesson extends BaseEntity {
 
     public void setOrderIndex(int orderIndex) {
         this.orderIndex = orderIndex;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
     }
 }
 

@@ -10,4 +10,6 @@ import com.ou.LMS_Spring.Entities.AssessmentQuiz;
 @Repository
 public interface AssessmentQuizRepository extends JpaRepository<AssessmentQuiz, Long> {
     Optional<AssessmentQuiz> findByIdAndIsActiveTrue(Long id);
+
+    Optional<AssessmentQuiz> findByLesson_Id(Long lessonId);
 }

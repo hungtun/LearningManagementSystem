@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ou.LMS_Spring.modules.courses.dtos.requests.AdminCourseStatusRequest;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.CourseDetailResponse;
 import com.ou.LMS_Spring.modules.courses.dtos.responses.CourseSummaryResponse;
+import com.ou.LMS_Spring.modules.courses.dtos.responses.LessonDetailResponse;
 import com.ou.LMS_Spring.modules.courses.services.interfaces.ICourseService;
 
 import jakarta.validation.Valid;
@@ -32,6 +33,17 @@ public class AdminCourseController {
     @GetMapping("/pending")
     public ResponseEntity<List<CourseSummaryResponse>> listPending() {
         return ResponseEntity.ok(courseService.listPendingReview());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CourseDetailResponse> getCourseDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.adminGetCourseDetail(id));
+    }
+
+    @GetMapping("/lessons/{lessonId}")
+    public ResponseEntity<LessonDetailResponse> getLessonDetail(
+            @PathVariable Long lessonId) {
+        return ResponseEntity.ok(courseService.adminGetLessonDetail(lessonId));
     }
 
     @PatchMapping("/{id}/status")

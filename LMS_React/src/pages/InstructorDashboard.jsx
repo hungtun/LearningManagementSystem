@@ -1,21 +1,38 @@
 import { useEffect, useState } from 'react'
 import { logout } from '../api/auth.js'
-import { listInstructorSubmissions, gradeSubmission } from '../api/assessments.js'
+import {
+  listInstructorSubmissions,
+  gradeSubmission,
+  getQuizByLesson,
+  createQuiz,
+  updateQuiz,
+  deleteQuiz,
+  addQuestion,
+  updateQuestion,
+  deleteQuestion,
+  getAssignmentByLesson,
+  createAssignment,
+  updateAssignment,
+  deleteAssignment,
+} from '../api/assessments.js'
 import {
   addLesson,
   createCourse,
   deleteCourse,
   deleteLesson,
+  deleteLessonAttachment,
+  getMyLessonDetail,
   listMyInstructorCourses,
   updateCourse,
   updateLesson,
+  uploadLessonAttachment,
 } from '../api/courses.js'
 import { listCourseStudents } from '../api/enrollments.js'
 import { setToken } from '../api/http.js'
 import { listDiscussions, createDiscussion } from '../api/learnings.js'
 import { getInstructorAnalytics, listCategories, listNotifications, markAllNotificationsRead } from '../api/system.js'
 import { useNotificationPolling } from '../hooks/useNotificationPolling.js'
-import { getPublishedCourseDetail } from '../api/courses.js'
+import { getMyCourseDetail } from '../api/courses.js'
 import HomeFooter from './dashboard/components/HomeFooter.jsx'
 import './DashboardPage.css'
 
@@ -44,14 +61,32 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
   const [discussionLessonId, setDiscussionLessonId] = useState(null)
   const [discussions, setDiscussions] = useState([])
   const [newDiscussion, setNewDiscussion] = useState('')
+  const [replyToId, setReplyToId] = useState(null)
+  const [replyContent, setReplyContent] = useState('')
+  const [isPostingReply, setIsPostingReply] = useState(false)
 
   const [courseForm, setCourseForm] = useState({ id: null, title: '', description: '', categoryId: '' })
-  const [lessonForm, setLessonForm] = useState({ id: null, title: '', content: '' })
+  const [lessonForm, setLessonForm] = useState({ id: null, title: '', content: '', videoUrl: '' })
+  const [selectedLessonForAssignment, setSelectedLessonForAssignment] = useState(null)
+  const [assignmentData, setAssignmentData] = useState(null)
+  const [assignmentForm, setAssignmentForm] = useState({ title: '', description: '', maxScore: 100, startAt: '', endAt: '' })
+  const [isAssignmentFormOpen, setIsAssignmentFormOpen] = useState(false)
+
+  const [selectedLessonForQuiz, setSelectedLessonForQuiz] = useState(null)
+  const [quizData, setQuizData] = useState(null)
+  const [quizForm, setQuizForm] = useState({ title: '', description: '', passScore: 0, startAt: '', endAt: '' })
+  const [questionForm, setQuestionForm] = useState({ id: null, questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', point: 1, orderIndex: 0 })
+  const [isQuizFormOpen, setIsQuizFormOpen] = useState(false)
+
+  const [selectedLessonForAttachment, setSelectedLessonForAttachment] = useState(null)
+  const [lessonAttachments, setLessonAttachments] = useState([])
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
   const [gradeForm, setGradeForm] = useState({ submissionId: null, submissionType: '', score: 0, feedback: '' })
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, message: '', onConfirm: null })
 
   useNotificationPolling(setNotifications)
 
@@ -98,6 +133,22 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
     setGlobalError(msg)
   }
 
+  function openConfirmDialog(message, onConfirm) {
+    setConfirmDialog({ open: true, message, onConfirm })
+  }
+
+  async function handleConfirmDialogOk() {
+    const action = confirmDialog.onConfirm
+    setConfirmDialog({ open: false, message: '', onConfirm: null })
+    if (typeof action === 'function') {
+      await action()
+    }
+  }
+
+  function handleConfirmDialogCancel() {
+    setConfirmDialog({ open: false, message: '', onConfirm: null })
+  }
+
   async function handleOpenCourseStudents(course) {
     setSelectedCourse(course)
     setCourseStudents([])
@@ -121,18 +172,40 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
     } catch (_) { setDiscussions([]) }
   }
 
+  async function refreshDiscussions() {
+    const updated = await listDiscussions(discussionLessonId)
+    setDiscussions(Array.isArray(updated) ? updated : [])
+  }
+
   async function handlePostDiscussion(event) {
     event.preventDefault()
     const content = newDiscussion.trim()
     if (!content || !discussionLessonId) return
     try {
       await createDiscussion({ lessonId: discussionLessonId, content })
-      const updated = await listDiscussions(discussionLessonId)
-      setDiscussions(Array.isArray(updated) ? updated : [])
+      await refreshDiscussions()
       setNewDiscussion('')
       notifySuccess('Reply posted')
     } catch (_) {
       notifyError('Failed to post reply')
+    }
+  }
+
+  async function handlePostReply(event) {
+    event.preventDefault()
+    const content = replyContent.trim()
+    if (!content || !discussionLessonId || !replyToId) return
+    setIsPostingReply(true)
+    try {
+      await createDiscussion({ lessonId: discussionLessonId, content, parentId: replyToId })
+      await refreshDiscussions()
+      setReplyToId(null)
+      setReplyContent('')
+      notifySuccess('Reply posted')
+    } catch (_) {
+      notifyError('Failed to post reply')
+    } finally {
+      setIsPostingReply(false)
     }
   }
 
@@ -220,44 +293,212 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
 
   async function handleOpenLessons(course) {
     try {
-      const detail = await getPublishedCourseDetail(course.id)
+      const detail = await getMyCourseDetail(course.id)
       setSelectedCourse({ ...course, lessons: detail.lessons || [] })
     } catch (_) {
       setSelectedCourse({ ...course, lessons: [] })
     }
-    setLessonForm({ id: null, title: '', content: '' })
+    setLessonForm({ id: null, title: '', content: '', videoUrl: '' })
     setActiveScreen('lessons')
   }
 
   async function handleSaveLesson(event) {
     event.preventDefault()
-    const { id, title, content } = lessonForm
+    const { id, title, content, videoUrl } = lessonForm
     try {
       if (id) {
-        await updateLesson(id, { title, content })
+        await updateLesson(id, { title, content, videoUrl })
         notifySuccess('Lesson updated')
       } else {
-        await addLesson(selectedCourse.id, { title, content })
+        await addLesson(selectedCourse.id, { title, content, videoUrl })
         notifySuccess('Lesson added')
       }
-      const detail = await getPublishedCourseDetail(selectedCourse.id)
+      const detail = await getMyCourseDetail(selectedCourse.id)
       setSelectedCourse((prev) => ({ ...prev, lessons: detail.lessons || [] }))
-      setLessonForm({ id: null, title: '', content: '' })
+      setLessonForm({ id: null, title: '', content: '', videoUrl: '' })
     } catch (_) {
       notifyError('Failed to save lesson')
     }
   }
 
-  async function handleDeleteLesson(lesson) {
-    if (!window.confirm(`Delete lesson "${lesson.title}"?`)) return
+  async function handleOpenAssignment(lesson) {
+    setSelectedLessonForAssignment(lesson)
+    setAssignmentData(null)
+    setIsAssignmentFormOpen(false)
     try {
-      await deleteLesson(lesson.id)
-      const detail = await getPublishedCourseDetail(selectedCourse.id)
-      setSelectedCourse((prev) => ({ ...prev, lessons: detail.lessons || [] }))
-      notifySuccess('Lesson deleted')
+      const data = await getAssignmentByLesson(lesson.id)
+      setAssignmentData(data)
+      setAssignmentForm({
+        title: data.title,
+        description: data.description || '',
+        maxScore: data.maxScore,
+        startAt: data.startAt ? data.startAt.slice(0, 16) : '',
+        endAt: data.endAt ? data.endAt.slice(0, 16) : '',
+      })
     } catch (_) {
-      notifyError('Failed to delete lesson')
+      setAssignmentData(null)
+      setAssignmentForm({ title: '', description: '', maxScore: 100, startAt: '', endAt: '' })
     }
+  }
+
+  async function handleSaveAssignment(event) {
+    event.preventDefault()
+    try {
+      if (assignmentData) {
+        const updated = await updateAssignment(assignmentData.assignmentId, assignmentForm)
+        setAssignmentData(updated)
+        notifySuccess('Assignment updated')
+      } else {
+        const created = await createAssignment({ lessonId: selectedLessonForAssignment.id, ...assignmentForm })
+        setAssignmentData(created)
+        notifySuccess('Assignment created')
+      }
+      setIsAssignmentFormOpen(false)
+    } catch (_) {
+      notifyError('Failed to save assignment')
+    }
+  }
+
+  async function handleDeleteAssignment() {
+    if (!window.confirm('Delete this assignment?')) return
+    try {
+      await deleteAssignment(assignmentData.assignmentId)
+      setAssignmentData(null)
+      setAssignmentForm({ title: '', description: '', maxScore: 100, startAt: '', endAt: '' })
+      notifySuccess('Assignment deleted')
+    } catch (_) {
+      notifyError('Failed to delete assignment')
+    }
+  }
+
+  async function handleOpenQuiz(lesson) {
+    setSelectedLessonForQuiz(lesson)
+    setQuizData(null)
+    setIsQuizFormOpen(false)
+    try {
+      const data = await getQuizByLesson(lesson.id)
+      setQuizData(data)
+      setQuizForm({
+        title: data.title,
+        description: data.description || '',
+        passScore: data.passScore || 0,
+        startAt: data.startAt ? data.startAt.slice(0, 16) : '',
+        endAt: data.endAt ? data.endAt.slice(0, 16) : '',
+      })
+    } catch (_) {
+      setQuizData(null)
+      setQuizForm({ title: '', description: '', passScore: 0, startAt: '', endAt: '' })
+    }
+  }
+
+  async function handleSaveQuiz(event) {
+    event.preventDefault()
+    try {
+      if (quizData) {
+        const updated = await updateQuiz(quizData.quizId, quizForm)
+        setQuizData(updated)
+        notifySuccess('Quiz updated')
+      } else {
+        const created = await createQuiz({ lessonId: selectedLessonForQuiz.id, ...quizForm })
+        setQuizData(created)
+        notifySuccess('Quiz created')
+      }
+      setIsQuizFormOpen(false)
+    } catch (_) {
+      notifyError('Failed to save quiz')
+    }
+  }
+
+  async function handleDeleteQuiz() {
+    if (!window.confirm('Delete this quiz and all its questions?')) return
+    try {
+      await deleteQuiz(quizData.quizId)
+      setQuizData(null)
+      setQuizForm({ title: '', description: '', passScore: 0, startAt: '', endAt: '' })
+      notifySuccess('Quiz deleted')
+    } catch (_) {
+      notifyError('Failed to delete quiz')
+    }
+  }
+
+  async function handleSaveQuestion(event) {
+    event.preventDefault()
+    try {
+      let updated
+      if (questionForm.id) {
+        updated = await updateQuestion(quizData.quizId, questionForm.id, questionForm)
+        notifySuccess('Question updated')
+      } else {
+        updated = await addQuestion(quizData.quizId, questionForm)
+        notifySuccess('Question added')
+      }
+      setQuizData(updated)
+      setQuestionForm({ id: null, questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', point: 1, orderIndex: 0 })
+    } catch (_) {
+      notifyError('Failed to save question')
+    }
+  }
+
+  async function handleDeleteQuestion(questionId) {
+    if (!window.confirm('Delete this question?')) return
+    try {
+      const updated = await deleteQuestion(quizData.quizId, questionId)
+      setQuizData(updated)
+      notifySuccess('Question deleted')
+    } catch (_) {
+      notifyError('Failed to delete question')
+    }
+  }
+
+  async function handleOpenAttachments(lesson) {
+    setSelectedLessonForAttachment(lesson)
+    try {
+      const detail = await getMyLessonDetail(lesson.id)
+      setLessonAttachments(Array.isArray(detail.attachments) ? detail.attachments : [])
+    } catch (_) {
+      setLessonAttachments([])
+    }
+  }
+
+  async function handleUploadAttachment(event) {
+    const file = event.target.files?.[0]
+    if (!file || !selectedLessonForAttachment) return
+    setIsUploadingAttachment(true)
+    try {
+      await uploadLessonAttachment(selectedLessonForAttachment.id, file)
+      const detail = await getMyLessonDetail(selectedLessonForAttachment.id)
+      setLessonAttachments(Array.isArray(detail.attachments) ? detail.attachments : [])
+      notifySuccess('Attachment uploaded')
+    } catch (_) {
+      notifyError('Failed to upload attachment')
+    } finally {
+      setIsUploadingAttachment(false)
+      event.target.value = ''
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId) {
+    if (!window.confirm('Delete this attachment?')) return
+    try {
+      await deleteLessonAttachment(attachmentId)
+      setLessonAttachments((prev) => prev.filter((a) => a.id !== attachmentId))
+      notifySuccess('Attachment deleted')
+    } catch (_) {
+      notifyError('Failed to delete attachment')
+    }
+  }
+
+  async function handleDeleteLesson(lesson) {
+    openConfirmDialog(`Are you sure you want to delete lesson "${lesson.title}"?`, async () => {
+      try {
+        await deleteLesson(lesson.id)
+        const detail = await getMyCourseDetail(selectedCourse.id)
+        setSelectedCourse((prev) => ({ ...prev, lessons: detail.lessons || [] }))
+        notifySuccess('Lesson deleted')
+      } catch (_) {
+        notifyError('Failed to delete lesson')
+      }
+    })
   }
 
   return (
@@ -500,7 +741,7 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
                             type="button"
                             className="secondaryButton"
                             style={{ fontSize: 12, padding: '3px 9px' }}
-                            onClick={() => { setLessonForm({ id: lesson.id, title: lesson.title, content: lesson.content || '' }) }}
+                            onClick={() => { setLessonForm({ id: lesson.id, title: lesson.title, content: lesson.content || '', videoUrl: lesson.videoUrl || '' }) }}
                           >
                             Edit
                           </button>
@@ -510,6 +751,30 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
                             onClick={() => handleDeleteLesson(lesson)}
                           >
                             Delete
+                          </button>
+                          <button
+                            type="button"
+                            className="secondaryButton"
+                            style={{ fontSize: 12, padding: '3px 9px' }}
+                            onClick={() => handleOpenAssignment(lesson)}
+                          >
+                            Assignment
+                          </button>
+                          <button
+                            type="button"
+                            className="secondaryButton"
+                            style={{ fontSize: 12, padding: '3px 9px' }}
+                            onClick={() => handleOpenQuiz(lesson)}
+                          >
+                            Quiz
+                          </button>
+                          <button
+                            type="button"
+                            className="secondaryButton"
+                            style={{ fontSize: 12, padding: '3px 9px' }}
+                            onClick={() => handleOpenAttachments(lesson)}
+                          >
+                            Attachments
                           </button>
                           <button
                             type="button"
@@ -546,14 +811,251 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
                       style={{ border: '1px solid #ccc', borderRadius: 4, padding: '6px 10px', fontSize: 14, resize: 'vertical', fontFamily: 'inherit' }}
                     />
                   </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14, fontWeight: 600 }}>
+                    Video URL (YouTube or direct)
+                    <input
+                      type="url"
+                      value={lessonForm.videoUrl}
+                      onChange={(e) => setLessonForm((s) => ({ ...s, videoUrl: e.target.value }))}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      maxLength={2048}
+                      style={{ border: '1px solid #ccc', borderRadius: 4, padding: '6px 10px', fontSize: 14 }}
+                    />
+                  </label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="submit" className="primaryButton small">Save</button>
                     {lessonForm.id && (
-                      <button type="button" className="secondaryButton" onClick={() => setLessonForm({ id: null, title: '', content: '' })}>Cancel Edit</button>
+                      <button type="button" className="secondaryButton" onClick={() => setLessonForm({ id: null, title: '', content: '', videoUrl: '' })}>Cancel Edit</button>
                     )}
                   </div>
                 </form>
               </div>
+            </div>
+
+            {selectedLessonForAttachment && (
+              <div className="dataBlock" style={{ marginTop: 20 }}>
+                <h3>Attachments - {selectedLessonForAttachment.title}</h3>
+                {lessonAttachments.length === 0
+                  ? <p className="noteText">No attachments yet.</p>
+                  : (
+                    <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                      {lessonAttachments.map((att) => (
+                        <li key={att.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+                          <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1, fontSize: 13, color: '#2563eb' }}>
+                            {att.fileName}
+                          </a>
+                          <span style={{ fontSize: 12, color: '#888' }}>{att.fileType}</span>
+                          {att.fileSize && <span style={{ fontSize: 12, color: '#888' }}>{(att.fileSize / 1024).toFixed(1)} KB</span>}
+                          <button
+                            type="button"
+                            style={{ fontSize: 12, padding: '2px 8px', background: '#fff', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 4, cursor: 'pointer' }}
+                            onClick={() => handleDeleteAttachment(att.id)}
+                          >
+                            Delete
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                }
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  {isUploadingAttachment ? 'Uploading...' : 'Upload file'}
+                  <input
+                    type="file"
+                    style={{ fontSize: 13 }}
+                    disabled={isUploadingAttachment}
+                    onChange={handleUploadAttachment}
+                  />
+                </label>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Assignment form */}
+        {activeScreen === 'lessons' && selectedLessonForAssignment && (
+          <section>
+            <div className="dataBlock" style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h3>Assignment - {selectedLessonForAssignment.title}</h3>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {assignmentData && (
+                    <button type="button" style={{ fontSize: 12, padding: '3px 9px', background: '#fff', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 4, cursor: 'pointer' }} onClick={handleDeleteAssignment}>Delete Assignment</button>
+                  )}
+                  <button type="button" className="secondaryButton" style={{ fontSize: 12, padding: '3px 9px' }} onClick={() => setIsAssignmentFormOpen((v) => !v)}>
+                    {assignmentData ? 'Edit Assignment' : 'Create Assignment'}
+                  </button>
+                </div>
+              </div>
+              {assignmentData && !isAssignmentFormOpen && (
+                <div>
+                  <strong style={{ fontSize: 14 }}>{assignmentData.title}</strong>
+                  {assignmentData.description && <p style={{ fontSize: 13, color: '#555', marginTop: 3 }}>{assignmentData.description}</p>}
+                  <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>Max score: {assignmentData.maxScore}</p>
+                  <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                    Time: {assignmentData.startAt ? new Date(assignmentData.startAt).toLocaleString('vi-VN') : '-'} - {assignmentData.endAt ? new Date(assignmentData.endAt).toLocaleString('vi-VN') : '-'}
+                  </p>
+                </div>
+              )}
+              {isAssignmentFormOpen && (
+                <form onSubmit={handleSaveAssignment} style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#f8fafc', padding: 12, borderRadius: 6 }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    Title *
+                    <input value={assignmentForm.title} onChange={(e) => setAssignmentForm((s) => ({ ...s, title: e.target.value }))} required style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    Description
+                    <textarea rows={3} value={assignmentForm.description} onChange={(e) => setAssignmentForm((s) => ({ ...s, description: e.target.value }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600, width: 140 }}>
+                    Max Score
+                    <input type="number" min={1} value={assignmentForm.maxScore} onChange={(e) => setAssignmentForm((s) => ({ ...s, maxScore: Number(e.target.value) }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13, width: 80 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    Start Time
+                    <input
+                      type="datetime-local"
+                      value={assignmentForm.startAt}
+                      onChange={(e) => setAssignmentForm((s) => ({ ...s, startAt: e.target.value }))}
+                      required
+                      style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    End Time
+                    <input
+                      type="datetime-local"
+                      value={assignmentForm.endAt}
+                      onChange={(e) => setAssignmentForm((s) => ({ ...s, endAt: e.target.value }))}
+                      required
+                      style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }}
+                    />
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="submit" className="primaryButton small">Save</button>
+                    <button type="button" className="secondaryButton" onClick={() => setIsAssignmentFormOpen(false)}>Cancel</button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Quiz builder */}
+        {activeScreen === 'lessons' && selectedLessonForQuiz && (
+          <section>
+            <div className="dataBlock" style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h3>Quiz - {selectedLessonForQuiz.title}</h3>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {quizData && (
+                    <button type="button" style={{ fontSize: 12, padding: '3px 9px', background: '#fff', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 4, cursor: 'pointer' }} onClick={handleDeleteQuiz}>Delete Quiz</button>
+                  )}
+                  <button type="button" className="secondaryButton" style={{ fontSize: 12, padding: '3px 9px' }} onClick={() => { setIsQuizFormOpen((v) => !v) }}>
+                    {quizData ? 'Edit Quiz Info' : 'Create Quiz'}
+                  </button>
+                </div>
+              </div>
+              {isQuizFormOpen && (
+                <form onSubmit={handleSaveQuiz} style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#f8fafc', padding: 12, borderRadius: 6, marginBottom: 16 }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    Title *
+                    <input value={quizForm.title} onChange={(e) => setQuizForm((s) => ({ ...s, title: e.target.value }))} required style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    Description
+                    <textarea rows={2} value={quizForm.description} onChange={(e) => setQuizForm((s) => ({ ...s, description: e.target.value }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13, resize: 'none', fontFamily: 'inherit' }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600, width: 120 }}>
+                    Pass Score
+                    <input type="number" min={0} value={quizForm.passScore} onChange={(e) => setQuizForm((s) => ({ ...s, passScore: Number(e.target.value) }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13, width: 80 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    Start Time
+                    <input
+                      type="datetime-local"
+                      value={quizForm.startAt}
+                      onChange={(e) => setQuizForm((s) => ({ ...s, startAt: e.target.value }))}
+                      required
+                      style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
+                    End Time
+                    <input
+                      type="datetime-local"
+                      value={quizForm.endAt}
+                      onChange={(e) => setQuizForm((s) => ({ ...s, endAt: e.target.value }))}
+                      required
+                      style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }}
+                    />
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="submit" className="primaryButton small">Save</button>
+                    <button type="button" className="secondaryButton" onClick={() => setIsQuizFormOpen(false)}>Cancel</button>
+                  </div>
+                </form>
+              )}
+              {quizData && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <strong style={{ fontSize: 14 }}>{quizData.title}</strong>
+                    {quizData.description && <p style={{ fontSize: 13, color: '#555', marginTop: 3 }}>{quizData.description}</p>}
+                    <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>Pass score: {quizData.passScore}</p>
+                    <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                      Time: {quizData.startAt ? new Date(quizData.startAt).toLocaleString('vi-VN') : '-'} - {quizData.endAt ? new Date(quizData.endAt).toLocaleString('vi-VN') : '-'}
+                    </p>
+                  </div>
+                  {quizData.questions?.length > 0 && (
+                    <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                      {quizData.questions.map((q, idx) => (
+                        <li key={q.questionId} style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '10px 12px', background: '#fff' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <strong style={{ fontSize: 13 }}>{idx + 1}. {q.questionText}</strong>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button type="button" className="secondaryButton" style={{ fontSize: 11, padding: '2px 7px' }} onClick={() => setQuestionForm({ id: q.questionId, questionText: q.questionText, optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD, correctOption: q.correctOption, point: q.point, orderIndex: q.orderIndex })}>Edit</button>
+                              <button type="button" style={{ fontSize: 11, padding: '2px 7px', background: '#fff', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 4, cursor: 'pointer' }} onClick={() => handleDeleteQuestion(q.questionId)}>Delete</button>
+                            </div>
+                          </div>
+                          <ul style={{ listStyle: 'none', marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+                            {['A', 'B', 'C', 'D'].map((opt) => (
+                              <li key={opt} style={{ fontSize: 12, color: q.correctOption === opt ? '#16a34a' : '#444', fontWeight: q.correctOption === opt ? 700 : 400 }}>
+                                {opt}. {q[`option${opt}`]}
+                              </li>
+                            ))}
+                          </ul>
+                          <span style={{ fontSize: 11, color: '#888', marginTop: 4, display: 'block' }}>{q.point} pt</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <form onSubmit={handleSaveQuestion} style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 12, background: '#f8fafc' }}>
+                    <strong style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>{questionForm.id ? 'Edit Question' : 'Add Question'}</strong>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input placeholder="Question text *" value={questionForm.questionText} onChange={(e) => setQuestionForm((s) => ({ ...s, questionText: e.target.value }))} required style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }} />
+                      {['A', 'B', 'C', 'D'].map((opt) => (
+                        <input key={opt} placeholder={`Option ${opt} *`} value={questionForm[`option${opt}`]} onChange={(e) => setQuestionForm((s) => ({ ...s, [`option${opt}`]: e.target.value }))} required style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13 }} />
+                      ))}
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <label style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
+                          Correct:
+                          <select value={questionForm.correctOption} onChange={(e) => setQuestionForm((s) => ({ ...s, correctOption: e.target.value }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '4px 8px', fontSize: 13 }}>
+                            {['A', 'B', 'C', 'D'].map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        </label>
+                        <label style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
+                          Points:
+                          <input type="number" min={1} value={questionForm.point} onChange={(e) => setQuestionForm((s) => ({ ...s, point: Number(e.target.value) }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '4px 6px', fontSize: 13, width: 60 }} />
+                        </label>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="submit" className="primaryButton small">Save</button>
+                        {questionForm.id && <button type="button" className="secondaryButton" onClick={() => setQuestionForm({ id: null, questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', point: 1, orderIndex: 0 })}>Cancel</button>}
+                      </div>
+                    </div>
+                  </form>
+                </>
+              )}
             </div>
           </section>
         )}
@@ -609,9 +1111,64 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
                   <ul className="discussionList" style={{ marginBottom: 16 }}>
                     {discussions.map((d) => (
                       <li key={d.id} className="discussionItem">
-                        <strong>{d.userFullName || 'User'}</strong>
-                        <span className="discussionDate">{formatDate(d.createdAt)}</span>
-                        <p>{d.content}</p>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                          <strong>{d.userFullName || 'User'}</strong>
+                          {d.userRole && (
+                            <span style={{ fontSize: 11, background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: 10, fontWeight: 600 }}>
+                              {d.userRole.replace('ROLE_', '')}
+                            </span>
+                          )}
+                          <span className="discussionDate">{formatDate(d.createdAt)}</span>
+                        </div>
+                        <p style={{ margin: '4px 0 6px' }}>{d.content}</p>
+                        <button
+                          type="button"
+                          style={{ fontSize: 12, background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0 }}
+                          onClick={() => {
+                            if (replyToId === d.id) { setReplyToId(null); setReplyContent('') }
+                            else { setReplyToId(d.id); setReplyContent('') }
+                          }}
+                        >
+                          {replyToId === d.id ? 'Cancel reply' : 'Reply'}
+                        </button>
+                        {replyToId === d.id && (
+                          <form onSubmit={handlePostReply} style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+                            <textarea
+                              rows={2}
+                              placeholder="Write a reply..."
+                              value={replyContent}
+                              onChange={(e) => setReplyContent(e.target.value)}
+                              required
+                              style={{ flex: 1, border: '1px solid #ccc', borderRadius: 4, padding: '4px 8px', fontSize: 13, resize: 'none', fontFamily: 'inherit' }}
+                            />
+                            <button
+                              type="submit"
+                              className="primaryButton small"
+                              disabled={isPostingReply || !replyContent.trim()}
+                              style={{ alignSelf: 'flex-end' }}
+                            >
+                              {isPostingReply ? '...' : 'Post'}
+                            </button>
+                          </form>
+                        )}
+                        {d.replies && d.replies.length > 0 && (
+                          <ul style={{ marginTop: 8, paddingLeft: 20, borderLeft: '2px solid #e5e7eb', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {d.replies.map((r) => (
+                              <li key={r.id} className="discussionItem" style={{ background: '#f8fafc' }}>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                                  <strong>{r.userFullName || 'User'}</strong>
+                                  {r.userRole && (
+                                    <span style={{ fontSize: 11, background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: 10, fontWeight: 600 }}>
+                                      {r.userRole.replace('ROLE_', '')}
+                                    </span>
+                                  )}
+                                  <span className="discussionDate">{formatDate(r.createdAt)}</span>
+                                </div>
+                                <p style={{ margin: '4px 0' }}>{r.content}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -700,6 +1257,43 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
           </section>
         )}
 
+        {confirmDialog.open && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                width: 360,
+                maxWidth: '90vw',
+                background: '#fff',
+                borderRadius: 8,
+                padding: 18,
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <h4 style={{ margin: 0, fontSize: 16 }}>Confirmation</h4>
+              <p style={{ margin: '10px 0 16px', fontSize: 14, color: '#374151' }}>{confirmDialog.message}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button type="button" className="secondaryButton" onClick={handleConfirmDialogCancel}>Cancel</button>
+                <button
+                  type="button"
+                  style={{ background: '#dc2626', color: '#fff', border: '1px solid #dc2626', borderRadius: 6, padding: '7px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                  onClick={handleConfirmDialogOk}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <HomeFooter />
     </div>

@@ -57,3 +57,45 @@ export async function requestJson(path, { method = 'GET', body, token, withAuth 
   return data
 }
 
+export async function uploadMultipart(path, formData, { method = 'POST', token, withAuth = true } = {}) {
+  const headers = {}
+
+  if (withAuth) {
+    const authToken = token ?? getToken()
+    if (authToken) headers.Authorization = `Bearer ${authToken}`
+  }
+
+  const res = await fetch(path, {
+    method,
+    headers,
+    body: formData,
+  })
+
+  const contentType = res.headers.get('content-type') || ''
+  let data
+  try {
+    const text = await res.text()
+    if (contentType.includes('application/json') || (text && text.startsWith('{'))) {
+      data = JSON.parse(text)
+    } else {
+      data = text || null
+    }
+  } catch (_) {
+    data = null
+  }
+
+  if (!res.ok) {
+    const error = new Error('Request failed')
+    error.status = res.status
+    error.data = data
+    throw error
+  }
+
+  if (data === null) return {}
+  if (typeof data !== 'object') return {}
+  if (Object.prototype.hasOwnProperty.call(data, 'data')) {
+    return data.data ?? {}
+  }
+  return data
+}
+

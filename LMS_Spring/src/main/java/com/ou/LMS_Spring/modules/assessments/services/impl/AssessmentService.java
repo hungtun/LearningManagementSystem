@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ou.LMS_Spring.Entities.AssessmentAssignment;
 import com.ou.LMS_Spring.Entities.AssessmentQuestionOption;
 import com.ou.LMS_Spring.Entities.AssessmentQuiz;
 import com.ou.LMS_Spring.Entities.AssessmentQuizQuestion;
@@ -30,12 +31,20 @@ import com.ou.LMS_Spring.Entities.AssignmentSubmission;
 import com.ou.LMS_Spring.Entities.Lesson;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.helpers.ApiBusinessException;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.InstructorAssignmentCreateRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.InstructorAssignmentUpdateRequest;
 import com.ou.LMS_Spring.modules.assessments.dtos.requests.InstructorGradeRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.InstructorQuizCreateRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.InstructorQuizUpdateRequest;
+import com.ou.LMS_Spring.modules.assessments.dtos.requests.QuizQuestionRequest;
 import com.ou.LMS_Spring.modules.assessments.dtos.requests.QuizSubmitRequest;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.AssessmentQuizResponse;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.AssignmentSubmitResponse;
+import com.ou.LMS_Spring.modules.assessments.dtos.responses.InstructorAssignmentResponse;
+import com.ou.LMS_Spring.modules.assessments.dtos.responses.InstructorQuizResponse;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.InstructorSubmissionItemResponse;
 import com.ou.LMS_Spring.modules.assessments.dtos.responses.QuizSubmitResponse;
+import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentAssignmentRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizQuestionRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizSubmissionAnswerRepository;
@@ -60,6 +69,7 @@ public class AssessmentService implements IAssessmentService {
     private final AssessmentQuizSubmissionRepository assessmentQuizSubmissionRepository;
     private final AssessmentQuizSubmissionAnswerRepository assessmentQuizSubmissionAnswerRepository;
     private final AssignmentSubmissionRepository assignmentSubmissionRepository;
+    private final AssessmentAssignmentRepository assessmentAssignmentRepository;
     private final LessonRepository lessonRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
@@ -71,26 +81,17 @@ public class AssessmentService implements IAssessmentService {
         AssessmentQuiz quiz = assessmentQuizRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> quizNotFound(id));
         assertEnrolled(user.getId(), quiz.getLesson().getCourse().getId());
+        return toStudentQuizResponse(quiz);
+    }
 
-        List<AssessmentQuizResponse.QuizQuestionResponse> questions = assessmentQuizQuestionRepository
-                .findByQuiz_IdOrderByOrderIndexAsc(quiz.getId())
-                .stream()
-                .map(q -> new AssessmentQuizResponse.QuizQuestionResponse(
-                        q.getId(),
-                        q.getQuestionText(),
-                        q.getOptionA(),
-                        q.getOptionB(),
-                        q.getOptionC(),
-                        q.getOptionD()))
-                .collect(Collectors.toList());
-
-        return new AssessmentQuizResponse(
-                quiz.getId(),
-                quiz.getLesson().getId(),
-                quiz.getTitle(),
-                quiz.getDescription(),
-                quiz.getPassScore(),
-                questions);
+    @Override
+    @Transactional(readOnly = true)
+    public AssessmentQuizResponse getQuizByLessonForStudent(Long lessonId) {
+        User user = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findByLesson_Id(lessonId)
+                .orElseThrow(() -> quizNotFound(lessonId));
+        assertEnrolled(user.getId(), quiz.getLesson().getCourse().getId());
+        return toStudentQuizResponse(quiz);
     }
 
     @Override
@@ -100,6 +101,13 @@ public class AssessmentService implements IAssessmentService {
         AssessmentQuiz quiz = assessmentQuizRepository.findByIdAndIsActiveTrue(request.getQuizId())
                 .orElseThrow(() -> quizNotFound(request.getQuizId()));
         assertEnrolled(user.getId(), quiz.getLesson().getCourse().getId());
+        LocalDateTime now = LocalDateTime.now();
+        if (quiz.getStartAt() != null && now.isBefore(quiz.getStartAt())) {
+            throw quizNotStarted(quiz.getStartAt());
+        }
+        if (quiz.getEndAt() != null && now.isAfter(quiz.getEndAt())) {
+            throw quizClosed(quiz.getEndAt());
+        }
 
         List<AssessmentQuizQuestion> questions = assessmentQuizQuestionRepository.findByQuiz_IdOrderByOrderIndexAsc(quiz.getId());
         if (questions.isEmpty()) {
@@ -160,6 +168,15 @@ public class AssessmentService implements IAssessmentService {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> lessonNotFound(lessonId));
         assertEnrolled(user.getId(), lesson.getCourse().getId());
+        AssessmentAssignment assignment = assessmentAssignmentRepository.findByLesson_Id(lessonId)
+                .orElseThrow(() -> assignmentNotFound(lessonId));
+        LocalDateTime now = LocalDateTime.now();
+        if (assignment.getStartAt() != null && now.isBefore(assignment.getStartAt())) {
+            throw assignmentNotStarted(assignment.getStartAt());
+        }
+        if (assignment.getEndAt() != null && now.isAfter(assignment.getEndAt())) {
+            throw assignmentClosed(assignment.getEndAt());
+        }
 
         String originalFilename = file.getOriginalFilename() == null ? "assignment-file" : file.getOriginalFilename();
         String generatedFilename = UUID.randomUUID() + "-" + sanitizeFilename(originalFilename);
@@ -190,6 +207,18 @@ public class AssessmentService implements IAssessmentService {
 
     @Override
     @Transactional(readOnly = true)
+    public InstructorAssignmentResponse getAssignmentByLessonForStudent(Long lessonId) {
+        User user = currentUser();
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> lessonNotFound(lessonId));
+        assertEnrolled(user.getId(), lesson.getCourse().getId());
+        AssessmentAssignment assignment = assessmentAssignmentRepository.findByLesson_Id(lessonId)
+                .orElseThrow(() -> assignmentNotFound(lessonId));
+        return InstructorAssignmentResponse.from(assignment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<InstructorSubmissionItemResponse> instructorSubmissions() {
         User current = currentUser();
         assertInstructorOrAdmin();
@@ -198,35 +227,13 @@ public class AssessmentService implements IAssessmentService {
         List<AssessmentQuizSubmission> quizSubmissions = assessmentQuizSubmissionRepository
                 .findByQuiz_Lesson_Course_Instructor_IdOrderBySubmittedAtDesc(current.getId());
         for (AssessmentQuizSubmission row : quizSubmissions) {
-            rows.add(new InstructorSubmissionItemResponse(
-                    "QUIZ",
-                    row.getId(),
-                    row.getQuiz().getLesson().getCourse().getId(),
-                    row.getQuiz().getLesson().getId(),
-                    row.getStudent().getId(),
-                    row.getStudent().getFullName(),
-                    row.getScore(),
-                    row.getMaxScore(),
-                    row.getFeedback(),
-                    row.getSubmittedAt(),
-                    row.getGradedAt()));
+            rows.add(toInstructorSubmissionResponse(row));
         }
 
         List<AssignmentSubmission> assignmentSubmissions = assignmentSubmissionRepository
                 .findByLesson_Course_Instructor_IdOrderBySubmittedAtDesc(current.getId());
         for (AssignmentSubmission row : assignmentSubmissions) {
-            rows.add(new InstructorSubmissionItemResponse(
-                    "ASSIGNMENT",
-                    row.getId(),
-                    row.getLesson().getCourse().getId(),
-                    row.getLesson().getId(),
-                    row.getStudent().getId(),
-                    row.getStudent().getFullName(),
-                    row.getScore(),
-                    100,
-                    row.getFeedback(),
-                    row.getSubmittedAt(),
-                    row.getGradedAt()));
+            rows.add(toInstructorSubmissionResponse(row));
         }
         rows.sort((a, b) -> b.getSubmittedAt().compareTo(a.getSubmittedAt()));
         return rows;
@@ -247,18 +254,7 @@ public class AssessmentService implements IAssessmentService {
             row.setGradedAt(LocalDateTime.now());
             row.setGradedBy(instructor);
             AssessmentQuizSubmission saved = assessmentQuizSubmissionRepository.save(row);
-            return new InstructorSubmissionItemResponse(
-                    "QUIZ",
-                    saved.getId(),
-                    saved.getQuiz().getLesson().getCourse().getId(),
-                    saved.getQuiz().getLesson().getId(),
-                    saved.getStudent().getId(),
-                    saved.getStudent().getFullName(),
-                    saved.getScore(),
-                    saved.getMaxScore(),
-                    saved.getFeedback(),
-                    saved.getSubmittedAt(),
-                    saved.getGradedAt());
+            return toInstructorSubmissionResponse(saved);
         }
 
         if ("ASSIGNMENT".equals(type)) {
@@ -270,18 +266,7 @@ public class AssessmentService implements IAssessmentService {
             row.setGradedAt(LocalDateTime.now());
             row.setGradedBy(instructor);
             AssignmentSubmission saved = assignmentSubmissionRepository.save(row);
-            return new InstructorSubmissionItemResponse(
-                    "ASSIGNMENT",
-                    saved.getId(),
-                    saved.getLesson().getCourse().getId(),
-                    saved.getLesson().getId(),
-                    saved.getStudent().getId(),
-                    saved.getStudent().getFullName(),
-                    saved.getScore(),
-                    100,
-                    saved.getFeedback(),
-                    saved.getSubmittedAt(),
-                    saved.getGradedAt());
+            return toInstructorSubmissionResponse(saved);
         }
         throw invalidSubmissionType();
     }
@@ -313,9 +298,7 @@ public class AssessmentService implements IAssessmentService {
 
     private void assertCourseInstructor(User courseInstructor, User current) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth != null && auth.getAuthorities() != null && auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch("ROLE_ADMIN"::equals);
+        boolean isAdmin = hasRole(auth, "ROLE_ADMIN");
         if (isAdmin) {
             return;
         }
@@ -326,6 +309,68 @@ public class AssessmentService implements IAssessmentService {
 
     private String sanitizeFilename(String input) {
         return input.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    private boolean hasRole(Authentication auth, String role) {
+        return auth != null
+                && auth.getAuthorities() != null
+                && auth.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .anyMatch(role::equals);
+    }
+
+    private AssessmentQuizResponse toStudentQuizResponse(AssessmentQuiz quiz) {
+        List<AssessmentQuizResponse.QuizQuestionResponse> questions = assessmentQuizQuestionRepository
+                .findByQuiz_IdOrderByOrderIndexAsc(quiz.getId())
+                .stream()
+                .map(q -> new AssessmentQuizResponse.QuizQuestionResponse(
+                        q.getId(),
+                        q.getQuestionText(),
+                        q.getOptionA(),
+                        q.getOptionB(),
+                        q.getOptionC(),
+                        q.getOptionD()))
+                .collect(Collectors.toList());
+
+        return new AssessmentQuizResponse(
+                quiz.getId(),
+                quiz.getLesson().getId(),
+                quiz.getTitle(),
+                quiz.getDescription(),
+                quiz.getPassScore(),
+                quiz.getStartAt(),
+                quiz.getEndAt(),
+                questions);
+    }
+
+    private InstructorSubmissionItemResponse toInstructorSubmissionResponse(AssessmentQuizSubmission row) {
+        return new InstructorSubmissionItemResponse(
+                "QUIZ",
+                row.getId(),
+                row.getQuiz().getLesson().getCourse().getId(),
+                row.getQuiz().getLesson().getId(),
+                row.getStudent().getId(),
+                row.getStudent().getFullName(),
+                row.getScore(),
+                row.getMaxScore(),
+                row.getFeedback(),
+                row.getSubmittedAt(),
+                row.getGradedAt());
+    }
+
+    private InstructorSubmissionItemResponse toInstructorSubmissionResponse(AssignmentSubmission row) {
+        return new InstructorSubmissionItemResponse(
+                "ASSIGNMENT",
+                row.getId(),
+                row.getLesson().getCourse().getId(),
+                row.getLesson().getId(),
+                row.getStudent().getId(),
+                row.getStudent().getFullName(),
+                row.getScore(),
+                100,
+                row.getFeedback(),
+                row.getSubmittedAt(),
+                row.getGradedAt());
     }
 
     private static ApiBusinessException quizNotFound(Long quizId) {
@@ -387,5 +432,300 @@ public class AssessmentService implements IAssessmentService {
         errors.put(ERR_CODE, "INVALID_SUBMISSION_TYPE");
         errors.put("acceptedValues", "QUIZ,ASSIGNMENT");
         return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Invalid submission type", errors));
+    }
+
+    // ---- Instructor quiz CRUD ----
+
+    @Override
+    @Transactional(readOnly = true)
+    public InstructorQuizResponse getQuizByLesson(Long lessonId) {
+        assertInstructorOrAdmin();
+        AssessmentQuiz quiz = assessmentQuizRepository.findByLesson_Id(lessonId)
+                .orElseThrow(() -> quizNotFound(lessonId));
+        return toInstructorQuizResponse(quiz);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse createQuiz(InstructorQuizCreateRequest request) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
+                .orElseThrow(() -> lessonNotFound(request.getLessonId()));
+        assertCourseInstructor(lesson.getCourse().getInstructor(), me);
+
+        if (assessmentQuizRepository.findByLesson_Id(lesson.getId()).isPresent()) {
+            Map<String, String> errors = new HashMap<>();
+            errors.put(ERR_CODE, "QUIZ_ALREADY_EXISTS");
+            errors.put("lessonId", String.valueOf(lesson.getId()));
+            throw new ApiBusinessException(HttpStatus.CONFLICT, new ErrorResource("Quiz already exists for this lesson", errors));
+        }
+
+        AssessmentQuiz quiz = new AssessmentQuiz();
+        quiz.setLesson(lesson);
+        quiz.setTitle(request.getTitle().trim());
+        quiz.setDescription(request.getDescription());
+        quiz.setPassScore(request.getPassScore() != null ? request.getPassScore() : 0);
+        validateQuizWindow(request.getStartAt(), request.getEndAt());
+        quiz.setStartAt(request.getStartAt());
+        quiz.setEndAt(request.getEndAt());
+        AssessmentQuiz saved = assessmentQuizRepository.save(quiz);
+        return toInstructorQuizResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse updateQuiz(Long quizId, InstructorQuizUpdateRequest request) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findById(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), me);
+
+        quiz.setTitle(request.getTitle().trim());
+        quiz.setDescription(request.getDescription());
+        quiz.setPassScore(request.getPassScore() != null ? request.getPassScore() : 0);
+        validateQuizWindow(request.getStartAt(), request.getEndAt());
+        quiz.setStartAt(request.getStartAt());
+        quiz.setEndAt(request.getEndAt());
+        AssessmentQuiz saved = assessmentQuizRepository.save(quiz);
+        return toInstructorQuizResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteQuiz(Long quizId) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findById(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), me);
+        List<Long> submissionIds = assessmentQuizSubmissionRepository.findByQuiz_Id(quizId).stream()
+                .map(AssessmentQuizSubmission::getId)
+                .collect(Collectors.toList());
+        if (!submissionIds.isEmpty()) {
+            assessmentQuizSubmissionAnswerRepository.deleteBySubmission_IdIn(submissionIds);
+        }
+        assessmentQuizSubmissionAnswerRepository.deleteByQuestion_Quiz_Id(quizId);
+        assessmentQuizSubmissionRepository.deleteByQuiz_Id(quizId);
+        assessmentQuizQuestionRepository.deleteAll(
+                assessmentQuizQuestionRepository.findByQuiz_IdOrderByOrderIndexAsc(quizId));
+        assessmentQuizRepository.delete(quiz);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse addQuestion(Long quizId, QuizQuestionRequest request) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findById(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), me);
+
+        AssessmentQuizQuestion q = buildQuestion(quiz, request);
+        assessmentQuizQuestionRepository.save(q);
+        return toInstructorQuizResponse(quiz);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse updateQuestion(Long quizId, Long questionId, QuizQuestionRequest request) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findById(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), me);
+
+        AssessmentQuizQuestion q = assessmentQuizQuestionRepository.findById(questionId)
+                .orElseThrow(() -> questionNotFound(questionId));
+        applyQuestionFields(q, request);
+        assessmentQuizQuestionRepository.save(q);
+        return toInstructorQuizResponse(quiz);
+    }
+
+    @Override
+    @Transactional
+    public InstructorQuizResponse deleteQuestion(Long quizId, Long questionId) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        AssessmentQuiz quiz = assessmentQuizRepository.findById(quizId)
+                .orElseThrow(() -> quizNotFound(quizId));
+        assertCourseInstructor(quiz.getLesson().getCourse().getInstructor(), me);
+
+        AssessmentQuizQuestion q = assessmentQuizQuestionRepository.findById(questionId)
+                .orElseThrow(() -> questionNotFound(questionId));
+        assessmentQuizQuestionRepository.delete(q);
+        return toInstructorQuizResponse(quiz);
+    }
+
+    private InstructorQuizResponse toInstructorQuizResponse(AssessmentQuiz quiz) {
+        List<InstructorQuizResponse.QuizQuestionDetail> questions =
+                assessmentQuizQuestionRepository.findByQuiz_IdOrderByOrderIndexAsc(quiz.getId())
+                        .stream()
+                        .map(q -> new InstructorQuizResponse.QuizQuestionDetail(
+                                q.getId(),
+                                q.getQuestionText(),
+                                q.getOptionA(),
+                                q.getOptionB(),
+                                q.getOptionC(),
+                                q.getOptionD(),
+                                q.getCorrectOption(),
+                                q.getPoint(),
+                                q.getOrderIndex()))
+                        .collect(Collectors.toList());
+        return new InstructorQuizResponse(
+                quiz.getId(),
+                quiz.getLesson().getId(),
+                quiz.getTitle(),
+                quiz.getDescription(),
+                quiz.getPassScore(),
+                quiz.getStartAt(),
+                quiz.getEndAt(),
+                questions);
+    }
+
+    private AssessmentQuizQuestion buildQuestion(AssessmentQuiz quiz, QuizQuestionRequest request) {
+        AssessmentQuizQuestion q = new AssessmentQuizQuestion();
+        q.setQuiz(quiz);
+        applyQuestionFields(q, request);
+        return q;
+    }
+
+    private void applyQuestionFields(AssessmentQuizQuestion q, QuizQuestionRequest request) {
+        q.setQuestionText(request.getQuestionText().trim());
+        q.setOptionA(request.getOptionA().trim());
+        q.setOptionB(request.getOptionB().trim());
+        q.setOptionC(request.getOptionC().trim());
+        q.setOptionD(request.getOptionD().trim());
+        q.setCorrectOption(request.getCorrectOption());
+        q.setPoint(request.getPoint());
+        q.setOrderIndex(request.getOrderIndex());
+    }
+
+    private static ApiBusinessException questionNotFound(Long questionId) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "QUESTION_NOT_FOUND");
+        errors.put("questionId", String.valueOf(questionId));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("Question not found", errors));
+    }
+
+    private static void validateQuizWindow(LocalDateTime startAt, LocalDateTime endAt) {
+        if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
+            Map<String, String> errors = new HashMap<>();
+            errors.put(ERR_CODE, "INVALID_QUIZ_WINDOW");
+            errors.put("message", "endAt must be after startAt");
+            throw new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Invalid quiz time window", errors));
+        }
+    }
+
+    private static ApiBusinessException quizNotStarted(LocalDateTime startAt) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "QUIZ_NOT_STARTED");
+        errors.put("startAt", String.valueOf(startAt));
+        return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Quiz has not started yet", errors));
+    }
+
+    private static ApiBusinessException quizClosed(LocalDateTime endAt) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "QUIZ_CLOSED");
+        errors.put("endAt", String.valueOf(endAt));
+        return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Quiz deadline has passed", errors));
+    }
+
+    // ---- Instructor assignment CRUD ----
+
+    @Override
+    @Transactional(readOnly = true)
+    public InstructorAssignmentResponse getAssignmentByLesson(Long lessonId) {
+        assertInstructorOrAdmin();
+        AssessmentAssignment assignment = assessmentAssignmentRepository.findByLesson_Id(lessonId)
+                .orElseThrow(() -> assignmentNotFound(lessonId));
+        return InstructorAssignmentResponse.from(assignment);
+    }
+
+    @Override
+    @Transactional
+    public InstructorAssignmentResponse createAssignment(InstructorAssignmentCreateRequest request) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
+                .orElseThrow(() -> lessonNotFound(request.getLessonId()));
+        assertCourseInstructor(lesson.getCourse().getInstructor(), me);
+
+        if (assessmentAssignmentRepository.findByLesson_Id(lesson.getId()).isPresent()) {
+            Map<String, String> errors = new HashMap<>();
+            errors.put(ERR_CODE, "ASSIGNMENT_ALREADY_EXISTS");
+            errors.put("lessonId", String.valueOf(lesson.getId()));
+            throw new ApiBusinessException(HttpStatus.CONFLICT, new ErrorResource("Assignment already exists for this lesson", errors));
+        }
+
+        AssessmentAssignment assignment = new AssessmentAssignment();
+        assignment.setLesson(lesson);
+        assignment.setTitle(request.getTitle().trim());
+        assignment.setDescription(request.getDescription());
+        assignment.setMaxScore(request.getMaxScore());
+        validateAssignmentWindow(request.getStartAt(), request.getEndAt());
+        assignment.setStartAt(request.getStartAt());
+        assignment.setEndAt(request.getEndAt());
+        return InstructorAssignmentResponse.from(assessmentAssignmentRepository.save(assignment));
+    }
+
+    @Override
+    @Transactional
+    public InstructorAssignmentResponse updateAssignment(Long assignmentId, InstructorAssignmentUpdateRequest request) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        AssessmentAssignment assignment = assessmentAssignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> assignmentNotFound(assignmentId));
+        assertCourseInstructor(assignment.getLesson().getCourse().getInstructor(), me);
+
+        assignment.setTitle(request.getTitle().trim());
+        assignment.setDescription(request.getDescription());
+        assignment.setMaxScore(request.getMaxScore());
+        validateAssignmentWindow(request.getStartAt(), request.getEndAt());
+        assignment.setStartAt(request.getStartAt());
+        assignment.setEndAt(request.getEndAt());
+        return InstructorAssignmentResponse.from(assessmentAssignmentRepository.save(assignment));
+    }
+
+    @Override
+    @Transactional
+    public void deleteAssignment(Long assignmentId) {
+        assertInstructorOrAdmin();
+        User me = currentUser();
+        AssessmentAssignment assignment = assessmentAssignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> assignmentNotFound(assignmentId));
+        assertCourseInstructor(assignment.getLesson().getCourse().getInstructor(), me);
+        assessmentAssignmentRepository.delete(assignment);
+    }
+
+    private static ApiBusinessException assignmentNotFound(Long id) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "ASSIGNMENT_NOT_FOUND");
+        errors.put("id", String.valueOf(id));
+        return new ApiBusinessException(HttpStatus.NOT_FOUND, new ErrorResource("Assignment not found", errors));
+    }
+
+    private static void validateAssignmentWindow(LocalDateTime startAt, LocalDateTime endAt) {
+        if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
+            Map<String, String> errors = new HashMap<>();
+            errors.put(ERR_CODE, "INVALID_ASSIGNMENT_WINDOW");
+            errors.put("message", "endAt must be after startAt");
+            throw new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Invalid assignment time window", errors));
+        }
+    }
+
+    private static ApiBusinessException assignmentNotStarted(LocalDateTime startAt) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "ASSIGNMENT_NOT_STARTED");
+        errors.put("startAt", String.valueOf(startAt));
+        return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Assignment has not started yet", errors));
+    }
+
+    private static ApiBusinessException assignmentClosed(LocalDateTime endAt) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ERR_CODE, "ASSIGNMENT_CLOSED");
+        errors.put("endAt", String.valueOf(endAt));
+        return new ApiBusinessException(HttpStatus.BAD_REQUEST, new ErrorResource("Assignment deadline has passed", errors));
     }
 }

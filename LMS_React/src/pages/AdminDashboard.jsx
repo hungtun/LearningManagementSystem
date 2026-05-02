@@ -19,6 +19,12 @@ import {
   patchAdminUserRole,
   disableAdminUser,
 } from '../api/users.js'
+import {
+  listPendingReviewCourses,
+  getAdminCourseDetail,
+  getAdminLessonDetail,
+  updateAdminCourseStatus,
+} from '../api/courses.js'
 import HomeFooter from './dashboard/components/HomeFooter.jsx'
 import './DashboardPage.css'
 
@@ -29,6 +35,25 @@ function formatDate(dateString) {
   } catch (_) {
     return dateString
   }
+}
+
+function toEmbeddableVideoUrl(rawUrl) {
+  if (!rawUrl) return ''
+  const url = String(rawUrl).trim()
+  const isYoutube = url.includes('youtube.com') || url.includes('youtu.be')
+  if (!isYoutube) return url
+
+  const videoId = (() => {
+    try {
+      if (url.includes('youtu.be/')) return url.split('youtu.be/')[1]?.split(/[?&]/)[0] || ''
+      const parsed = new URL(url)
+      return parsed.searchParams.get('v') || ''
+    } catch (_) {
+      return ''
+    }
+  })()
+
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : url
 }
 
 const ROLES = ['STUDENT', 'INSTRUCTOR', 'ADMIN']
@@ -56,6 +81,10 @@ export default function AdminDashboard({ currentUser, onLoggedOut }) {
   const [pendingCourses, setPendingCourses] = useState([])
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingCourseId, setRejectingCourseId] = useState(null)
+  const [reviewCourseDetail, setReviewCourseDetail] = useState(null)
+  const [reviewLessonDetail, setReviewLessonDetail] = useState(null)
+  const [reviewLessonId, setReviewLessonId] = useState(null)
+  const [isLoadingReview, setIsLoadingReview] = useState(false)
 
   const [notifForm, setNotifForm] = useState({ title: '', content: '' })
 
@@ -89,31 +118,30 @@ export default function AdminDashboard({ currentUser, onLoggedOut }) {
 
   async function loadPendingCourses() {
     try {
-      const res = await fetch('/api/admin/courses/pending', {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('lms_token')}`,
-        },
-      })
-      const json = await res.json()
-      const courses = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : [])
+      const json = await listPendingReviewCourses()
+      const courses = Array.isArray(json) ? json : []
       setPendingCourses(courses)
     } catch (_) { setPendingCourses([]) }
   }
 
   async function handleApprove(courseId) {
     try {
-      await fetch(`/api/admin/courses/${courseId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('lms_token')}`,
-        },
-        body: JSON.stringify({ status: 'PUBLISHED' }),
-      })
+      await updateAdminCourseStatus(courseId, { status: 'PUBLISHED' })
       await loadPendingCourses()
+      if (reviewCourseDetail?.id === courseId) {
+        setReviewCourseDetail(null)
+        setReviewLessonDetail(null)
+        setReviewLessonId(null)
+      }
       notifySuccess('Course approved and published')
-    } catch (_) { notifyError('Failed to approve') }
+    } catch (error) {
+      if (error?.status === 404) {
+        await loadPendingCourses()
+        notifyError('Course not found or already removed from review queue')
+        return
+      }
+      notifyError('Failed to approve')
+    }
   }
 
   async function handleReject(courseId) {
@@ -122,19 +150,61 @@ export default function AdminDashboard({ currentUser, onLoggedOut }) {
       return
     }
     try {
-      await fetch(`/api/admin/courses/${courseId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('lms_token')}`,
-        },
-        body: JSON.stringify({ status: 'REJECTED', reason: rejectReason }),
-      })
+      await updateAdminCourseStatus(courseId, { status: 'REJECTED', reason: rejectReason })
       setRejectingCourseId(null)
       setRejectReason('')
       await loadPendingCourses()
+      if (reviewCourseDetail?.id === courseId) {
+        setReviewCourseDetail(null)
+        setReviewLessonDetail(null)
+        setReviewLessonId(null)
+      }
       notifySuccess('Course rejected')
-    } catch (_) { notifyError('Failed to reject') }
+    } catch (error) {
+      if (error?.status === 404) {
+        await loadPendingCourses()
+        notifyError('Course not found or already removed from review queue')
+        return
+      }
+      notifyError('Failed to reject')
+    }
+  }
+
+  async function handleOpenReview(courseId) {
+    setIsLoadingReview(true)
+    setReviewCourseDetail(null)
+    setReviewLessonDetail(null)
+    setReviewLessonId(null)
+    try {
+      const detail = await getAdminCourseDetail(courseId)
+      setReviewCourseDetail(detail)
+      const firstLessonId = detail?.lessons?.[0]?.id
+      if (firstLessonId) {
+        const lesson = await getAdminLessonDetail(firstLessonId)
+        setReviewLessonId(firstLessonId)
+        setReviewLessonDetail(lesson)
+      }
+    } catch (error) {
+      if (error?.status === 404) {
+        await loadPendingCourses()
+        notifyError('Course not found or no longer available for review')
+      } else {
+        notifyError('Failed to load course content')
+      }
+    } finally {
+      setIsLoadingReview(false)
+    }
+  }
+
+  async function handleSelectReviewLesson(lessonId) {
+    setReviewLessonId(lessonId)
+    setReviewLessonDetail(null)
+    try {
+      const lesson = await getAdminLessonDetail(lessonId)
+      setReviewLessonDetail(lesson)
+    } catch (_) {
+      notifyError('Failed to load lesson detail')
+    }
   }
 
   async function handleSaveUser(event) {
@@ -217,6 +287,9 @@ export default function AdminDashboard({ currentUser, onLoggedOut }) {
     setShowCatForm(false)
     setRejectingCourseId(null)
     setRejectReason('')
+    setReviewCourseDetail(null)
+    setReviewLessonDetail(null)
+    setReviewLessonId(null)
   }
 
   const navItems = [
@@ -558,6 +631,13 @@ export default function AdminDashboard({ currentUser, onLoggedOut }) {
                               <button type="button" className="primaryButton small" onClick={() => handleApprove(course.id)}>Approve</button>
                               <button
                                 type="button"
+                                className="secondaryButton"
+                                onClick={() => handleOpenReview(course.id)}
+                              >
+                                Review
+                              </button>
+                              <button
+                                type="button"
                                 style={{ fontSize: 12, padding: '4px 10px', background: '#fff', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 4, cursor: 'pointer' }}
                                 onClick={() => { setRejectingCourseId(course.id); setRejectReason('') }}
                               >
@@ -572,6 +652,85 @@ export default function AdminDashboard({ currentUser, onLoggedOut }) {
                 </div>
               )
             }
+            {(isLoadingReview || reviewCourseDetail) && (
+              <div className="dataBlock" style={{ marginTop: 16 }}>
+                {isLoadingReview && <p className="noteText">Loading course content...</p>}
+                {!isLoadingReview && reviewCourseDetail && (
+                  <div style={{ display: 'grid', gap: 14 }}>
+                    <div>
+                      <h3 style={{ marginBottom: 6 }}>Course Preview: {reviewCourseDetail.title}</h3>
+                      <p className="noteText" style={{ marginBottom: 4 }}>Instructor: {reviewCourseDetail.instructorName || '-'}</p>
+                      <p className="noteText" style={{ marginBottom: 4 }}>Category: {reviewCourseDetail.categoryName || '-'}</p>
+                      <p style={{ fontSize: 14, color: '#333' }}>{reviewCourseDetail.description || '-'}</p>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 12 }}>
+                      <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 10, background: '#fff' }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                          Lessons ({reviewCourseDetail.lessons?.length || 0})
+                        </p>
+                        {(reviewCourseDetail.lessons || []).length === 0 && <p className="noteText">No lesson content.</p>}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {(reviewCourseDetail.lessons || []).map((lesson) => (
+                            <button
+                              key={lesson.id}
+                              type="button"
+                              onClick={() => handleSelectReviewLesson(lesson.id)}
+                              style={{
+                                textAlign: 'left',
+                                border: '1px solid #d1d5db',
+                                borderRadius: 4,
+                                padding: '6px 8px',
+                                background: reviewLessonId === lesson.id ? '#eef2ff' : '#fff',
+                                cursor: 'pointer',
+                                fontSize: 13,
+                              }}
+                            >
+                              {lesson.orderIndex + 1}. {lesson.title}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 12, background: '#fff' }}>
+                        {!reviewLessonDetail && <p className="noteText">Select a lesson to view details.</p>}
+                        {reviewLessonDetail && (
+                          <div>
+                            <h4 style={{ marginBottom: 6 }}>{reviewLessonDetail.title}</h4>
+                            <p style={{ whiteSpace: 'pre-wrap', fontSize: 14, color: '#333', marginBottom: 10 }}>
+                              {reviewLessonDetail.content || 'No lesson text content.'}
+                            </p>
+                            {reviewLessonDetail.videoUrl && (
+                              <div style={{ marginBottom: 10 }}>
+                                <p className="noteText" style={{ marginBottom: 4 }}>Video</p>
+                                <iframe
+                                  src={toEmbeddableVideoUrl(reviewLessonDetail.videoUrl)}
+                                  title="Lesson video preview"
+                                  style={{ width: '100%', height: 260, border: '1px solid #ddd', borderRadius: 6 }}
+                                  allowFullScreen
+                                />
+                              </div>
+                            )}
+                            <p className="noteText" style={{ marginBottom: 4 }}>
+                              Attachments ({reviewLessonDetail.attachments?.length || 0})
+                            </p>
+                            {(reviewLessonDetail.attachments || []).length === 0
+                              ? <p className="noteText">No attachments.</p>
+                              : (
+                                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                  {(reviewLessonDetail.attachments || []).map((file) => (
+                                    <li key={file.id}>
+                                      <a href={file.fileUrl} target="_blank" rel="noreferrer">{file.fileName || file.fileUrl}</a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
 

@@ -26,5 +26,7 @@ public interface ILearningService {
 
     ReviewResponse createReview(ReviewCreateRequest request);
 
+    List<ReviewResponse> listCourseReviews(Long courseId);
+
     CertificateDownload downloadCertificate(Long courseId, String format);
 }
