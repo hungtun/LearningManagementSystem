@@ -2,6 +2,7 @@ package com.ou.LMS_Spring.modules.learnings.services.impl;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontFormatException;
 import java.awt.Graphics2D;
 import java.awt.GradientPaint;
 import java.awt.RenderingHints;
@@ -9,6 +10,7 @@ import java.awt.BasicStroke;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,9 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
-import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfWriter;
 import com.ou.LMS_Spring.Entities.Course;
 import com.ou.LMS_Spring.Entities.CourseReview;
@@ -67,6 +70,8 @@ import lombok.RequiredArgsConstructor;
 public class LearningService implements ILearningService {
 
     private static final String ERR_CODE = "code";
+
+    private static volatile Font cachedNotoSansAwtBase;
 
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
@@ -287,8 +292,45 @@ public class LearningService implements ILearningService {
         return true;
     }
 
+    private static synchronized Font loadNotoSansAwtBaseOnce() throws IOException, FontFormatException {
+        if (cachedNotoSansAwtBase != null) {
+            return cachedNotoSansAwtBase;
+        }
+        ClassPathResource res = new ClassPathResource("fonts/NotoSans-Regular.ttf");
+        try (InputStream in = res.getInputStream()) {
+            Font f = Font.createFont(Font.TRUETYPE_FONT, in);
+            java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(f);
+            cachedNotoSansAwtBase = f;
+            return f;
+        }
+    }
+
+    private Font notoSansAwtDerived(int style, float size) {
+        try {
+            return loadNotoSansAwtBaseOnce().deriveFont(style, size);
+        } catch (IOException | FontFormatException e) {
+            int awtStyle = (style & Font.BOLD) != 0 ? Font.BOLD : Font.PLAIN;
+            return new Font(Font.SANS_SERIF, awtStyle, Math.max(1, Math.round(size)));
+        }
+    }
+
+    private BaseFont certificatePdfBaseFont() {
+        try {
+            ClassPathResource res = new ClassPathResource("fonts/NotoSans-Regular.ttf");
+            byte[] bytes = res.getContentAsByteArray();
+            return BaseFont.createFont("NotoSans-Regular.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, bytes, null);
+        } catch (Exception e) {
+            throw certificateBuildFailed(e);
+        }
+    }
+
+    private static com.lowagie.text.Font pdfFont(BaseFont bf, float size, int style, Color color) {
+        return new com.lowagie.text.Font(bf, size, style, color);
+    }
+
     private byte[] buildCertificatePdf(User user, Course course) {
         try {
+            BaseFont bf = certificatePdfBaseFont();
             Document document = new Document(PageSize.A4, 48, 48, 48, 48);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             PdfWriter writer = PdfWriter.getInstance(document, baos);
@@ -299,46 +341,47 @@ public class LearningService implements ILearningService {
             document.add(new Paragraph(" "));
             Paragraph title = new Paragraph(
                     "Certificate of Completion",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 30, new Color(15, 23, 42)));
+                    pdfFont(bf, 30, com.lowagie.text.Font.BOLD, new Color(15, 23, 42)));
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             document.add(new Paragraph(" "));
 
             Paragraph subtitle = new Paragraph(
                     "This certificate is proudly presented to",
-                    FontFactory.getFont(FontFactory.HELVETICA, 13, new Color(71, 85, 105)));
+                    pdfFont(bf, 13, com.lowagie.text.Font.NORMAL, new Color(71, 85, 105)));
             subtitle.setAlignment(Element.ALIGN_CENTER);
             document.add(subtitle);
             document.add(new Paragraph(" "));
 
-            Paragraph name = new Paragraph(user.getFullName(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 28, new Color(30, 64, 175)));
+            Paragraph name = new Paragraph(
+                    user.getFullName(),
+                    pdfFont(bf, 28, com.lowagie.text.Font.BOLD, new Color(30, 64, 175)));
             name.setAlignment(Element.ALIGN_CENTER);
             document.add(name);
             document.add(new Paragraph(" "));
 
-            Paragraph line2 = new Paragraph("for successfully completing the course", FontFactory.getFont(FontFactory.HELVETICA, 13, new Color(71, 85, 105)));
+            Paragraph line2 = new Paragraph(
+                    "for successfully completing the course",
+                    pdfFont(bf, 13, com.lowagie.text.Font.NORMAL, new Color(71, 85, 105)));
             line2.setAlignment(Element.ALIGN_CENTER);
             document.add(line2);
             document.add(new Paragraph(" "));
 
             Paragraph courseTitle = new Paragraph(
                     "\"" + course.getTitle() + "\"",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, new Color(15, 23, 42)));
+                    pdfFont(bf, 20, com.lowagie.text.Font.BOLD, new Color(15, 23, 42)));
             courseTitle.setAlignment(Element.ALIGN_CENTER);
             document.add(courseTitle);
 
             document.add(new Paragraph(" "));
             document.add(new Paragraph(" "));
             String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            String certificateCode = "CERT-" + course.getId() + "-" + user.getId();
 
-            Paragraph dateLine = new Paragraph("Issued on " + dateStr, FontFactory.getFont(FontFactory.HELVETICA, 12, new Color(51, 65, 85)));
+            Paragraph dateLine = new Paragraph(
+                    "Issued on " + dateStr,
+                    pdfFont(bf, 12, com.lowagie.text.Font.NORMAL, new Color(51, 65, 85)));
             dateLine.setAlignment(Element.ALIGN_CENTER);
             document.add(dateLine);
-
-            Paragraph codeLine = new Paragraph("Certificate ID: " + certificateCode, FontFactory.getFont(FontFactory.HELVETICA, 11, new Color(100, 116, 139)));
-            codeLine.setAlignment(Element.ALIGN_CENTER);
-            document.add(codeLine);
 
             document.close();
             return baos.toByteArray();
@@ -366,35 +409,30 @@ public class LearningService implements ILearningService {
         g.drawRoundRect(34, 34, width - 68, height - 68, 24, 24);
 
         g.setColor(new Color(15, 23, 42));
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 40));
+        g.setFont(notoSansAwtDerived(Font.BOLD, 40f));
         drawCenteredString(g, "Certificate of Completion", width, 120);
 
         g.setColor(new Color(71, 85, 105));
-        g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
+        g.setFont(notoSansAwtDerived(Font.PLAIN, 20f));
         drawCenteredString(g, "This certificate is proudly presented to", width, 185);
 
         g.setColor(new Color(30, 64, 175));
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 34));
+        g.setFont(notoSansAwtDerived(Font.BOLD, 34f));
         drawCenteredString(g, truncate(user.getFullName(), 42), width, 250);
 
         g.setColor(new Color(71, 85, 105));
-        g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
+        g.setFont(notoSansAwtDerived(Font.PLAIN, 20f));
         drawCenteredString(g, "for successfully completing the course", width, 312);
 
         g.setColor(new Color(15, 23, 42));
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
+        g.setFont(notoSansAwtDerived(Font.BOLD, 24f));
         drawCenteredString(g, "\"" + truncate(course.getTitle(), 48) + "\"", width, 365);
 
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        String certificateCode = "CERT-" + course.getId() + "-" + user.getId();
 
         g.setColor(new Color(51, 65, 85));
-        g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
-        drawCenteredString(g, "Issued on " + dateStr, width, 455);
-
-        g.setColor(new Color(100, 116, 139));
-        g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
-        drawCenteredString(g, "Certificate ID: " + certificateCode, width, 490);
+        g.setFont(notoSansAwtDerived(Font.PLAIN, 16f));
+        drawCenteredString(g, "Issued on " + dateStr, width, 478);
 
         g.dispose();
         try {
