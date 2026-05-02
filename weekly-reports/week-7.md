@@ -1,6 +1,6 @@
-# Báo cáo Tuần 6
+# Báo cáo Tuần 7
 
-**Tuần:** 6 (06/04/2026 - 12/04/2026)
+**Tuần:** 7 (13/04/2026 - 19/04/2026)
 **Nhóm:** 7
 **Đề tài:** 7 - Learning Management System
 **Nhóm trưởng:** Phạm Hữu Hưng - 2251052040
