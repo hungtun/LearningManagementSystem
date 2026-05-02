@@ -17,6 +17,7 @@ export default function HomeHeader({
   actionMenusRef,
 }) {
   const badgeCount = typeof unreadCount === 'number' ? unreadCount : 0
+  const isNotificationRead = (notification) => Boolean(notification?.read ?? notification?.isRead)
 
   function handleToggleNotifications() {
     onToggleNotifications()
@@ -80,9 +81,9 @@ export default function HomeHeader({
                 ) : (
                   <ul>
                     {notifications.slice(0, 8).map((n) => (
-                      <li key={n.id} style={{ opacity: n.isRead ? 0.6 : 1 }}>
+                      <li key={n.id} style={{ opacity: isNotificationRead(n) ? 0.55 : 1 }}>
                         <strong>{n.title}</strong>
-                        {!n.isRead && (
+                        {!isNotificationRead(n) && (
                           <span style={{ marginLeft: 6, fontSize: 10, background: '#1e40af', color: '#fff', borderRadius: 3, padding: '1px 5px', fontWeight: 600 }}>
                             New
                           </span>
