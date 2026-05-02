@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InstructorAssignmentResponse {
+
     private Long assignmentId;
     private Long lessonId;
     private String title;
@@ -20,14 +21,24 @@ public class InstructorAssignmentResponse {
     private LocalDateTime startAt;
     private LocalDateTime endAt;
 
+    private Long mySubmissionId;
+    private String mySubmissionFilename;
+    private LocalDateTime mySubmittedAt;
+    private String mySubmissionNote;
+    private Integer myScore;
+    private LocalDateTime myGradedAt;
+    private String myFeedback;
+    private Boolean myCanResubmit;
+
     public static InstructorAssignmentResponse from(AssessmentAssignment a) {
-        return new InstructorAssignmentResponse(
-                a.getId(),
-                a.getLesson().getId(),
-                a.getTitle(),
-                a.getDescription(),
-                a.getMaxScore(),
-                a.getStartAt(),
-                a.getEndAt());
+        InstructorAssignmentResponse dto = new InstructorAssignmentResponse();
+        dto.setAssignmentId(a.getId());
+        dto.setLessonId(a.getLesson().getId());
+        dto.setTitle(a.getTitle());
+        dto.setDescription(a.getDescription());
+        dto.setMaxScore(a.getMaxScore());
+        dto.setStartAt(a.getStartAt());
+        dto.setEndAt(a.getEndAt());
+        return dto;
     }
 }

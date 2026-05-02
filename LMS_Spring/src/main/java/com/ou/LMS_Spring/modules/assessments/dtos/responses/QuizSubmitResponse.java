@@ -12,4 +12,6 @@ public class QuizSubmitResponse {
     private Integer score;
     private Integer maxScore;
     private boolean passed;
+    private int attemptsUsedAfter;
+    private int attemptsRemaining;
 }

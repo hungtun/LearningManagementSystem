@@ -22,6 +22,10 @@ public class InstructorQuizUpdateRequest {
     private Integer passScore = 0;
 
     @NotNull
+    @Min(1)
+    private Integer maxAttempts = 1;
+
+    @NotNull
     private LocalDateTime startAt;
 
     @NotNull

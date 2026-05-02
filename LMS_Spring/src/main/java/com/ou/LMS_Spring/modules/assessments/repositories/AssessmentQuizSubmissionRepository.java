@@ -1,6 +1,7 @@
 package com.ou.LMS_Spring.modules.assessments.repositories;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -10,6 +11,10 @@ import com.ou.LMS_Spring.Entities.AssessmentQuizSubmission;
 @Repository
 public interface AssessmentQuizSubmissionRepository extends JpaRepository<AssessmentQuizSubmission, Long> {
     List<AssessmentQuizSubmission> findByQuiz_Lesson_Course_Instructor_IdOrderBySubmittedAtDesc(Long instructorId);
+
+    long countByQuiz_IdAndStudent_Id(Long quizId, Long studentId);
+
+    Optional<AssessmentQuizSubmission> findFirstByQuiz_IdAndStudent_IdOrderBySubmittedAtDesc(Long quizId, Long studentId);
 
     List<AssessmentQuizSubmission> findByQuiz_Id(Long quizId);
 

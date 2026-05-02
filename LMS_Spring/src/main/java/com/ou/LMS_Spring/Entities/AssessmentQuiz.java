@@ -32,6 +32,9 @@ public class AssessmentQuiz extends BaseEntity {
     @Column
     private LocalDateTime endAt;
 
+    @Column(nullable = false)
+    private int maxAttempts = 1;
+
     public Lesson getLesson() {
         return lesson;
     }
@@ -78,5 +81,13 @@ public class AssessmentQuiz extends BaseEntity {
 
     public void setEndAt(LocalDateTime endAt) {
         this.endAt = endAt;
+    }
+
+    public int getMaxAttempts() {
+        return maxAttempts;
+    }
+
+    public void setMaxAttempts(int maxAttempts) {
+        this.maxAttempts = maxAttempts;
     }
 }

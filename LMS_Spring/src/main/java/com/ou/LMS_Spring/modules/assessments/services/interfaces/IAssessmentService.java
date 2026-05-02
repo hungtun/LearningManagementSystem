@@ -2,6 +2,8 @@ package com.ou.LMS_Spring.modules.assessments.services.interfaces;
 
 import java.util.List;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ou.LMS_Spring.modules.assessments.dtos.requests.InstructorAssignmentCreateRequest;
@@ -29,7 +31,11 @@ public interface IAssessmentService {
 
     InstructorAssignmentResponse getAssignmentByLessonForStudent(Long lessonId);
 
+    ResponseEntity<Resource> downloadMyAssignmentSubmission(Long lessonId);
+
     List<InstructorSubmissionItemResponse> instructorSubmissions();
+
+    ResponseEntity<Resource> downloadAssignmentSubmissionForInstructor(Long submissionId);
 
     InstructorSubmissionItemResponse gradeSubmission(InstructorGradeRequest request);
 

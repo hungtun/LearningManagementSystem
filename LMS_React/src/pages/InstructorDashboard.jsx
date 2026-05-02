@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { logout } from '../api/auth.js'
 import {
   listInstructorSubmissions,
+  downloadAssignmentSubmissionFile,
   gradeSubmission,
   getQuizByLesson,
   createQuiz,
@@ -57,6 +58,8 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
 
   const [courseStudents, setCourseStudents] = useState([])
   const [submissions, setSubmissions] = useState([])
+  const [submissionsSearch, setSubmissionsSearch] = useState('')
+  const [expandedSubmissionKey, setExpandedSubmissionKey] = useState(null)
 
   const [discussionLessonId, setDiscussionLessonId] = useState(null)
   const [discussions, setDiscussions] = useState([])
@@ -74,14 +77,20 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
 
   const [selectedLessonForQuiz, setSelectedLessonForQuiz] = useState(null)
   const [quizData, setQuizData] = useState(null)
-  const [quizForm, setQuizForm] = useState({ title: '', description: '', passScore: 0, startAt: '', endAt: '' })
+  const [quizForm, setQuizForm] = useState({ title: '', description: '', passScore: 0, maxAttempts: 1, startAt: '', endAt: '' })
   const [questionForm, setQuestionForm] = useState({ id: null, questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', point: 1, orderIndex: 0 })
   const [isQuizFormOpen, setIsQuizFormOpen] = useState(false)
 
   const [selectedLessonForAttachment, setSelectedLessonForAttachment] = useState(null)
   const [lessonAttachments, setLessonAttachments] = useState([])
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
-  const [gradeForm, setGradeForm] = useState({ submissionId: null, submissionType: '', score: 0, feedback: '' })
+  const [gradeForm, setGradeForm] = useState({
+    submissionId: null,
+    submissionType: '',
+    score: 0,
+    feedback: '',
+    maxScore: 100,
+  })
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false)
@@ -222,15 +231,47 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
   async function handleGrade(event) {
     event.preventDefault()
     try {
-      await gradeSubmission(gradeForm)
+      await gradeSubmission({
+        submissionId: gradeForm.submissionId,
+        submissionType: gradeForm.submissionType,
+        score: gradeForm.score,
+        feedback: gradeForm.feedback,
+      })
       const updated = await listInstructorSubmissions()
       setSubmissions(Array.isArray(updated) ? updated : [])
-      setGradeForm({ submissionId: null, submissionType: '', score: 0, feedback: '' })
+      setGradeForm({ submissionId: null, submissionType: '', score: 0, feedback: '', maxScore: 100 })
       notifySuccess('Graded successfully')
     } catch (_) {
       notifyError('Failed to grade')
     }
   }
+
+  async function handleDownloadAssignmentSubmission(submissionId) {
+    try {
+      await downloadAssignmentSubmissionFile(submissionId)
+      notifySuccess('Download started')
+    } catch (_) {
+      notifyError('Could not download file')
+    }
+  }
+
+  const submissionSearchLower = submissionsSearch.trim().toLowerCase()
+  const filteredSubmissions = !submissionSearchLower
+    ? submissions
+    : submissions.filter((sub) => {
+        const haystack = [
+          sub.studentName,
+          sub.assessmentTitle,
+          sub.lessonTitle,
+          sub.submissionType,
+          String(sub.lessonId ?? ''),
+          String(sub.courseId ?? ''),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(submissionSearchLower)
+      })
 
   function openCreateCourse() {
     setCourseForm({ id: null, title: '', description: '', categoryId: categories[0]?.id || '' })
@@ -382,12 +423,13 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
         title: data.title,
         description: data.description || '',
         passScore: data.passScore || 0,
+        maxAttempts: data.maxAttempts != null ? Number(data.maxAttempts) : 1,
         startAt: data.startAt ? data.startAt.slice(0, 16) : '',
         endAt: data.endAt ? data.endAt.slice(0, 16) : '',
       })
     } catch (_) {
       setQuizData(null)
-      setQuizForm({ title: '', description: '', passScore: 0, startAt: '', endAt: '' })
+      setQuizForm({ title: '', description: '', passScore: 0, maxAttempts: 1, startAt: '', endAt: '' })
     }
   }
 
@@ -414,7 +456,7 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
     try {
       await deleteQuiz(quizData.quizId)
       setQuizData(null)
-      setQuizForm({ title: '', description: '', passScore: 0, startAt: '', endAt: '' })
+      setQuizForm({ title: '', description: '', passScore: 0, maxAttempts: 1, startAt: '', endAt: '' })
       notifySuccess('Quiz deleted')
     } catch (_) {
       notifyError('Failed to delete quiz')
@@ -970,6 +1012,10 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
                     Pass Score
                     <input type="number" min={0} value={quizForm.passScore} onChange={(e) => setQuizForm((s) => ({ ...s, passScore: Number(e.target.value) }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13, width: 80 }} />
                   </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600, width: 140 }}>
+                    Max attempts
+                    <input type="number" min={1} value={quizForm.maxAttempts} onChange={(e) => setQuizForm((s) => ({ ...s, maxAttempts: Math.max(1, Number(e.target.value)) }))} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', fontSize: 13, width: 80 }} />
+                  </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
                     Start Time
                     <input
@@ -1002,6 +1048,7 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
                     <strong style={{ fontSize: 14 }}>{quizData.title}</strong>
                     {quizData.description && <p style={{ fontSize: 13, color: '#555', marginTop: 3 }}>{quizData.description}</p>}
                     <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>Pass score: {quizData.passScore}</p>
+                    <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>Max attempts: {quizData.maxAttempts ?? 1}</p>
                     <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
                       Time: {quizData.startAt ? new Date(quizData.startAt).toLocaleString('vi-VN') : '-'} - {quizData.endAt ? new Date(quizData.endAt).toLocaleString('vi-VN') : '-'}
                     </p>
@@ -1191,18 +1238,33 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
         {/* Submissions + grading */}
         {activeScreen === 'submissions' && (
           <section>
-            <h2 style={{ marginBottom: 16 }}>Assignment Submissions</h2>
+            <h2 style={{ marginBottom: 16 }}>Student submissions (assignments &amp; quizzes)</h2>
             {submissions.length === 0
               ? <p className="noteText">No submissions yet.</p>
               : (
                 <div className="dataBlock">
-                  {gradeForm.submissionId && (
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14, maxWidth: 420 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>Search</span>
+                    <input
+                      type="search"
+                      placeholder="Student, lesson, assessment, type..."
+                      value={submissionsSearch}
+                      onChange={(e) => setSubmissionsSearch(e.target.value)}
+                      style={{ border: '1px solid #ccc', borderRadius: 4, padding: '8px 10px', fontSize: 13 }}
+                    />
+                  </label>
+                  {filteredSubmissions.length === 0 && (
+                    <p className="noteText" style={{ marginBottom: 12 }}>No rows match your search.</p>
+                  )}
+                  {gradeForm.submissionId && gradeForm.submissionType === 'ASSIGNMENT' && (
                     <form onSubmit={handleGrade} style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', background: '#eff6ff', padding: 14, borderRadius: 6 }}>
-                      <strong style={{ width: '100%', fontSize: 14 }}>Grading submission #{gradeForm.submissionId}</strong>
+                      <strong style={{ width: '100%', fontSize: 14 }}>Grading assignment submission #{gradeForm.submissionId}</strong>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 13, fontWeight: 600 }}>
-                        Score (0-100)
+                        {`Score (0-${gradeForm.maxScore})`}
                         <input
-                          type="number" min={0} max={100}
+                          type="number"
+                          min={0}
+                          max={gradeForm.maxScore}
                           value={gradeForm.score}
                           onChange={(e) => setGradeForm((s) => ({ ...s, score: Number(e.target.value) }))}
                           style={{ border: '1px solid #ccc', borderRadius: 4, padding: '5px 8px', width: 80 }}
@@ -1217,38 +1279,151 @@ export default function InstructorDashboard({ currentUser, onLoggedOut }) {
                         />
                       </label>
                       <button type="submit" className="primaryButton small">Submit grade</button>
-                      <button type="button" className="secondaryButton" onClick={() => setGradeForm({ submissionId: null, submissionType: '', score: 0, feedback: '' })}>Cancel</button>
+                      <button
+                        type="button"
+                        className="secondaryButton"
+                        onClick={() => setGradeForm({ submissionId: null, submissionType: '', score: 0, feedback: '', maxScore: 100 })}
+                      >
+                        Cancel
+                      </button>
                     </form>
                   )}
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', display: filteredSubmissions.length === 0 ? 'none' : 'table' }}>
                     <thead>
                       <tr style={{ background: '#f9fafb' }}>
-                        {['Type', 'Student', 'Lesson', 'Score', 'Submitted', 'Action'].map((h) => (
+                        {['Type', 'Assessment', 'Lesson', 'Student', 'Score', 'Submitted', 'Actions'].map((h) => (
                           <th key={h} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 13, borderBottom: '1px solid #e5e7eb' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {submissions.map((sub) => (
-                        <tr key={`${sub.submissionType}-${sub.submissionId}`} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                          <td style={{ padding: '9px 12px', fontSize: 13 }}>{sub.submissionType}</td>
-                          <td style={{ padding: '9px 12px', fontSize: 13 }}>{sub.studentName}</td>
-                          <td style={{ padding: '9px 12px', fontSize: 13 }}>{sub.lessonId}</td>
-                          <td style={{ padding: '9px 12px', fontSize: 13 }}>
-                            {sub.score != null ? `${sub.score}/${sub.maxScore}` : <span style={{ color: '#888' }}>Not graded</span>}
-                          </td>
-                          <td style={{ padding: '9px 12px', fontSize: 13, color: '#666' }}>{formatDate(sub.submittedAt)}</td>
-                          <td style={{ padding: '9px 12px' }}>
-                            <button
-                              type="button"
-                              className="primaryButton small"
-                              onClick={() => setGradeForm({ submissionId: sub.submissionId, submissionType: sub.submissionType, score: sub.score || 0, feedback: sub.feedback || '' })}
-                            >
-                              Grade
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredSubmissions.map((sub) => {
+                        const detailKey = `${sub.submissionType}-${sub.submissionId}`
+                        const maxForItem = Number(sub.maxScore) || 100
+                        const optText = (qa, letter) => {
+                          if (letter === 'A') return qa.optionA
+                          if (letter === 'B') return qa.optionB
+                          if (letter === 'C') return qa.optionC
+                          if (letter === 'D') return qa.optionD
+                          return ''
+                        }
+                        return (
+                          <Fragment key={detailKey}>
+                            <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+                              <td style={{ padding: '9px 12px', fontSize: 13 }}>{sub.submissionType}</td>
+                              <td style={{ padding: '9px 12px', fontSize: 13 }}>{sub.assessmentTitle || '-'}</td>
+                              <td style={{ padding: '9px 12px', fontSize: 13 }}>
+                                {sub.lessonTitle || '-'}
+                              </td>
+                              <td style={{ padding: '9px 12px', fontSize: 13 }}>{sub.studentName}</td>
+                              <td style={{ padding: '9px 12px', fontSize: 13 }}>
+                                {sub.score != null
+                                  ? `${sub.score}/${sub.maxScore}`
+                                  : (
+                                      sub.submissionType === 'QUIZ'
+                                        ? <span style={{ color: '#888' }}>—</span>
+                                        : <span style={{ color: '#888' }}>Not graded</span>
+                                    )}
+                              </td>
+                              <td style={{ padding: '9px 12px', fontSize: 13, color: '#666' }}>{formatDate(sub.submittedAt)}</td>
+                              <td style={{ padding: '9px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {sub.submissionType === 'ASSIGNMENT' && (
+                                  <button
+                                    type="button"
+                                    className="primaryButton small"
+                                    onClick={() => setGradeForm({
+                                      submissionId: sub.submissionId,
+                                      submissionType: sub.submissionType,
+                                      score: sub.score ?? 0,
+                                      feedback: sub.feedback || '',
+                                      maxScore: maxForItem,
+                                    })}
+                                  >
+                                    Grade
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="secondaryButton small"
+                                  onClick={() => setExpandedSubmissionKey((k) => (k === detailKey ? null : detailKey))}
+                                >
+                                  {expandedSubmissionKey === detailKey ? 'Hide detail' : 'View answers'}
+                                </button>
+                                {sub.submissionType === 'ASSIGNMENT' && (
+                                  <button
+                                    type="button"
+                                    className="secondaryButton small"
+                                    onClick={() => handleDownloadAssignmentSubmission(sub.submissionId)}
+                                  >
+                                    Download file
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                            {expandedSubmissionKey === detailKey && (
+                              <tr style={{ borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
+                                <td colSpan={7} style={{ padding: '14px 16px', fontSize: 13, verticalAlign: 'top' }}>
+                                  {sub.submissionType === 'QUIZ' && Array.isArray(sub.quizAnswers) && sub.quizAnswers.length > 0 && (
+                                    <div>
+                                      <strong style={{ display: 'block', marginBottom: 10 }}>
+                                        {`Quiz score: ${sub.score != null ? `${sub.score}/${sub.maxScore}` : '-'}`}
+                                      </strong>
+                                      {sub.quizAnswers.map((qa, idx) => (
+                                        <div
+                                          key={qa.questionId ?? idx}
+                                          style={{
+                                            marginBottom: 12,
+                                            padding: 12,
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: 6,
+                                            background: '#fff',
+                                          }}
+                                        >
+                                          <div style={{ fontWeight: 600 }}>{`Q${idx + 1}. ${qa.questionText}`}</div>
+                                          <div style={{ marginTop: 8, fontSize: 13 }}>
+                                            {`Student chose ${qa.selectedOption || '-'}: ${optText(qa, qa.selectedOption) || '-'}`}
+                                          </div>
+                                          <div style={{ marginTop: 4, fontSize: 13, color: qa.correct ? '#047857' : '#b45309' }}>
+                                            {qa.correct ? 'Correct' : 'Incorrect'}
+                                            {` — ${qa.earnedPoint}/${qa.questionPoint} pts`}
+                                          </div>
+                                          <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
+                                            {`Correct option ${qa.correctOption || '-'}: ${optText(qa, qa.correctOption) || '-'}`}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {sub.submissionType === 'QUIZ' && (!sub.quizAnswers || sub.quizAnswers.length === 0) && (
+                                    <p style={{ margin: 0, color: '#6b7280' }}>No saved answers for this attempt.</p>
+                                  )}
+                                  {sub.submissionType === 'ASSIGNMENT' && (
+                                    <div>
+                                      <strong style={{ display: 'block', marginBottom: 8 }}>Assignment submission</strong>
+                                      {sub.assignmentNote && (
+                                        <p style={{ margin: '0 0 8px' }}>
+                                          <span style={{ fontWeight: 600 }}>Student note: </span>
+                                          {sub.assignmentNote}
+                                        </p>
+                                      )}
+                                      <p style={{ margin: '0 0 10px', fontSize: 13 }}>
+                                        {`File: ${sub.assignmentOriginalFilename || '-'}`}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        className="primaryButton small"
+                                        onClick={() => handleDownloadAssignmentSubmission(sub.submissionId)}
+                                      >
+                                        Download file
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

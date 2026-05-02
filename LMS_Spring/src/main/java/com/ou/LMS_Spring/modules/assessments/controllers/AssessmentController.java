@@ -2,6 +2,7 @@ package com.ou.LMS_Spring.modules.assessments.controllers;
 
 import java.util.List;
 
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -65,7 +66,7 @@ public class AssessmentController {
     @PostMapping(value = "/assignments/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SuccessResource<AssignmentSubmitResponse>> submitAssignment(
             @RequestParam("lessonId") Long lessonId,
-            @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "note", required = false) String note) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new SuccessResource<>("CREATED", assessmentService.submitAssignment(lessonId, file, note)));
@@ -76,9 +77,19 @@ public class AssessmentController {
         return ResponseEntity.ok(new SuccessResource<>("SUCCESS", assessmentService.getAssignmentByLessonForStudent(lessonId)));
     }
 
+    @GetMapping("/assignment/lesson/{lessonId}/my-submission/file")
+    public ResponseEntity<Resource> downloadMyAssignmentSubmission(@PathVariable Long lessonId) {
+        return assessmentService.downloadMyAssignmentSubmission(lessonId);
+    }
+
     @GetMapping("/instructor/submissions")
     public ResponseEntity<SuccessResource<List<InstructorSubmissionItemResponse>>> instructorSubmissions() {
         return ResponseEntity.ok(new SuccessResource<>("SUCCESS", assessmentService.instructorSubmissions()));
+    }
+
+    @GetMapping("/instructor/submissions/assignment/{submissionId}/file")
+    public ResponseEntity<Resource> downloadAssignmentSubmission(@PathVariable Long submissionId) {
+        return assessmentService.downloadAssignmentSubmissionForInstructor(submissionId);
     }
 
     @PatchMapping("/instructor/grade")

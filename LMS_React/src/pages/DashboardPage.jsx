@@ -438,6 +438,9 @@ export default function DashboardPage({ currentUser: currentUserProp, onLoggedOu
             isSelectedCourseEnrolled={isSelectedCourseEnrolled}
             onStartLearning={handleStartLearning}
             onBackHome={() => setActiveScreen('home')}
+            onCourseReviewsUpdated={setSelectedCourseReviews}
+            onNotifySuccess={notifySuccess}
+            onNotifyError={notifyError}
           />
         </div>
       )}

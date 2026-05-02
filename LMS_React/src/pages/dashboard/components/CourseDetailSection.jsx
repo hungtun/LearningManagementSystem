@@ -1,5 +1,17 @@
+import { useState } from 'react'
+import { createReview, listCourseReviews } from '../../../api/learnings.js'
+
 function getCourseThumbClass(id) {
   return `courseThumb courseThumb-${(id || 0) % 8}`
+}
+
+function formatReviewDate(dateString) {
+  if (!dateString) return ''
+  try {
+    return new Date(dateString).toLocaleDateString('vi-VN')
+  } catch {
+    return dateString
+  }
 }
 
 export default function CourseDetailSection({
@@ -12,7 +24,14 @@ export default function CourseDetailSection({
   isSelectedCourseEnrolled,
   onStartLearning,
   onBackHome,
+  onCourseReviewsUpdated,
+  onNotifySuccess,
+  onNotifyError,
 }) {
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [isPostingReview, setIsPostingReview] = useState(false)
+
   if (selectedCourseId === null) {
     return (
       <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
@@ -42,6 +61,28 @@ export default function CourseDetailSection({
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviews.length)
     : 0
+
+  async function handlePostReview(event) {
+    event.preventDefault()
+    if (!selectedCourseDetail?.id) return
+    setIsPostingReview(true)
+    try {
+      await createReview({
+        courseId: selectedCourseDetail.id,
+        rating: reviewRating,
+        comment: reviewComment,
+      })
+      const refreshed = await listCourseReviews(selectedCourseDetail.id)
+      onCourseReviewsUpdated?.(Array.isArray(refreshed) ? refreshed : [])
+      setReviewComment('')
+      setReviewRating(5)
+      onNotifySuccess?.('Course review submitted')
+    } catch (error) {
+      onNotifyError?.(error, 'Unable to submit review')
+    } finally {
+      setIsPostingReview(false)
+    }
+  }
 
   return (
     <div className="courseDetailPage">
@@ -148,37 +189,76 @@ export default function CourseDetailSection({
             </ul>
           </div>
 
-          <div className="curriculumBlock" style={{ marginTop: 16 }}>
+          <div className="curriculumBlock reviewBlock" style={{ marginTop: 16 }}>
             <div className="curriculumHeader">
-              <h5>Public reviews</h5>
+              <h5>Course reviews</h5>
               <span className="curriculumStats">
                 {reviews.length > 0 ? `${avgRating.toFixed(1)}/5` : 'No ratings yet'}
               </span>
             </div>
-            {isLoadingCourseReviews ? (
-              <p className="lessonEmpty">Loading reviews...</p>
-            ) : reviews.length === 0 ? (
-              <p className="lessonEmpty">No public reviews yet.</p>
+            <p className="noteText" style={{ marginBottom: 12 }}>
+              {reviews.length} public review{reviews.length === 1 ? '' : 's'}
+            </p>
+
+            {isSelectedCourseEnrolled ? (
+              <form className="reviewForm" onSubmit={handlePostReview}>
+                <label>
+                  Rating (1-5):
+                  <select
+                    value={reviewRating}
+                    onChange={(e) => setReviewRating(Number(e.target.value))}
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>{n} stars</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Comment:
+                  <textarea
+                    rows={3}
+                    placeholder="Write your feedback..."
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                  />
+                </label>
+                <button type="submit" className="primaryButton small" disabled={isPostingReview}>
+                  {isPostingReview ? 'Submitting...' : 'Submit review'}
+                </button>
+              </form>
             ) : (
-              <ul className="lessonList">
-                {reviews.map((review) => (
-                  <li key={review.id} className="lessonItem" style={{ display: 'block' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <strong style={{ fontSize: 14 }}>{review.userFullName || 'Student'}</strong>
-                      <span style={{ fontSize: 13, color: '#374151' }}>{Number(review.rating || 0)}/5</span>
-                    </div>
-                    {review.comment ? (
-                      <p style={{ marginTop: 6, marginBottom: 6, color: '#4b5563', fontSize: 13 }}>{review.comment}</p>
-                    ) : (
-                      <p style={{ marginTop: 6, marginBottom: 6, color: '#9ca3af', fontSize: 13 }}>No comment.</p>
-                    )}
-                    <span style={{ fontSize: 12, color: '#9ca3af' }}>
-                      {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <p className="lessonEmpty" style={{ marginBottom: 16 }}>
+                Enroll in this course to leave a review.
+              </p>
             )}
+
+            <div style={{ marginTop: isSelectedCourseEnrolled ? 16 : 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--color-text)' }}>All reviews</p>
+              {isLoadingCourseReviews ? (
+                <p className="lessonEmpty">Loading reviews...</p>
+              ) : reviews.length === 0 ? (
+                <p className="lessonEmpty">No public reviews yet.</p>
+              ) : (
+                <ul className="lessonList">
+                  {reviews.map((review) => (
+                    <li key={review.id} className="lessonItem" style={{ display: 'block' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <strong style={{ fontSize: 14 }}>{review.userFullName || 'Student'}</strong>
+                        <span style={{ fontSize: 13, color: '#374151' }}>{Number(review.rating || 0)}/5</span>
+                      </div>
+                      {review.comment ? (
+                        <p style={{ marginTop: 6, marginBottom: 6, color: '#4b5563', fontSize: 13 }}>{review.comment}</p>
+                      ) : (
+                        <p style={{ marginTop: 6, marginBottom: 6, color: '#9ca3af', fontSize: 13 }}>No comment.</p>
+                      )}
+                      <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                        {formatReviewDate(review.createdAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
 
