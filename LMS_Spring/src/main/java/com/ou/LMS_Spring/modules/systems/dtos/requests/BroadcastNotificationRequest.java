@@ -1,4 +1,4 @@
-package com.ou.LMS_Spring.modules.system.dtos.requests;
+package com.ou.LMS_Spring.modules.systems.dtos.requests;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

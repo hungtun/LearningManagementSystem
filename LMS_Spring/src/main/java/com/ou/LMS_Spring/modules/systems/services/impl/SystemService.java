@@ -1,4 +1,4 @@
-package com.ou.LMS_Spring.modules.system.services.impl;
+package com.ou.LMS_Spring.modules.systems.services.impl;
 
 import java.util.List;
 
@@ -17,14 +17,14 @@ import com.ou.LMS_Spring.helpers.exceptions.UserNotFoundException;
 import com.ou.LMS_Spring.modules.courses.repositories.CategoryRepository;
 import com.ou.LMS_Spring.modules.courses.repositories.CourseRepository;
 import com.ou.LMS_Spring.modules.enrollments.repositories.EnrollmentRepository;
-import com.ou.LMS_Spring.modules.system.dtos.requests.BroadcastNotificationRequest;
-import com.ou.LMS_Spring.modules.system.dtos.requests.UpsertCategoryRequest;
-import com.ou.LMS_Spring.modules.system.dtos.responses.AdminAnalyticsResponse;
-import com.ou.LMS_Spring.modules.system.dtos.responses.CategoryResponse;
-import com.ou.LMS_Spring.modules.system.dtos.responses.InstructorAnalyticsResponse;
-import com.ou.LMS_Spring.modules.system.dtos.responses.NotificationResponse;
-import com.ou.LMS_Spring.modules.system.repositories.UserNotificationRepository;
-import com.ou.LMS_Spring.modules.system.services.interfaces.ISystemService;
+import com.ou.LMS_Spring.modules.systems.dtos.requests.BroadcastNotificationRequest;
+import com.ou.LMS_Spring.modules.systems.dtos.requests.UpsertCategoryRequest;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.AdminAnalyticsResponse;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.CategoryResponse;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.InstructorAnalyticsResponse;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.NotificationResponse;
+import com.ou.LMS_Spring.modules.systems.repositories.UserNotificationRepository;
+import com.ou.LMS_Spring.modules.systems.services.interfaces.ISystemService;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
 
 import lombok.RequiredArgsConstructor;

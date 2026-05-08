@@ -1,4 +1,4 @@
-package com.ou.LMS_Spring.modules.system.controllers;
+package com.ou.LMS_Spring.modules.systems.controllers;
 
 import java.util.List;
 
@@ -8,11 +8,11 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ou.LMS_Spring.modules.system.dtos.responses.AdminAnalyticsResponse;
-import com.ou.LMS_Spring.modules.system.dtos.responses.CategoryResponse;
-import com.ou.LMS_Spring.modules.system.dtos.responses.InstructorAnalyticsResponse;
-import com.ou.LMS_Spring.modules.system.dtos.responses.NotificationResponse;
-import com.ou.LMS_Spring.modules.system.services.interfaces.ISystemService;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.AdminAnalyticsResponse;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.CategoryResponse;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.InstructorAnalyticsResponse;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.NotificationResponse;
+import com.ou.LMS_Spring.modules.systems.services.interfaces.ISystemService;
 import com.ou.LMS_Spring.resources.SuccessResource;
 
 import lombok.RequiredArgsConstructor;

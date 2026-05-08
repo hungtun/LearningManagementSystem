@@ -1,4 +1,4 @@
-package com.ou.LMS_Spring.modules.system.repositories;
+package com.ou.LMS_Spring.modules.systems.repositories;
 
 import java.util.List;
 

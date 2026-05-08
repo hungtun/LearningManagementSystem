@@ -13,7 +13,7 @@ import com.ou.LMS_Spring.Entities.Role;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.helpers.exceptions.UserNotFoundException;
 import com.ou.LMS_Spring.Services.BaseService;
-import com.ou.LMS_Spring.modules.system.services.impl.CloudinaryService;
+import com.ou.LMS_Spring.Services.CloudinaryService;
 import com.ou.LMS_Spring.modules.users.dtos.UserDto;
 import com.ou.LMS_Spring.modules.users.dtos.requests.UpdateMeRequest;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;

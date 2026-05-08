@@ -1,4 +1,4 @@
-package com.ou.LMS_Spring.modules.system.controllers;
+package com.ou.LMS_Spring.modules.systems.controllers;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ou.LMS_Spring.modules.system.dtos.requests.BroadcastNotificationRequest;
-import com.ou.LMS_Spring.modules.system.dtos.requests.UpsertCategoryRequest;
-import com.ou.LMS_Spring.modules.system.dtos.responses.CategoryResponse;
-import com.ou.LMS_Spring.modules.system.services.interfaces.ISystemService;
+import com.ou.LMS_Spring.modules.systems.dtos.requests.BroadcastNotificationRequest;
+import com.ou.LMS_Spring.modules.systems.dtos.requests.UpsertCategoryRequest;
+import com.ou.LMS_Spring.modules.systems.dtos.responses.CategoryResponse;
+import com.ou.LMS_Spring.modules.systems.services.interfaces.ISystemService;
 import com.ou.LMS_Spring.resources.SuccessResource;
 
 import jakarta.validation.Valid;

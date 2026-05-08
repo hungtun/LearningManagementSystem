@@ -1,4 +1,4 @@
-package com.ou.LMS_Spring.modules.system.services.impl;
+package com.ou.LMS_Spring.Services;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

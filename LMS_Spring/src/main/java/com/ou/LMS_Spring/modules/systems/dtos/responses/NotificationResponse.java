@@ -1,4 +1,4 @@
-package com.ou.LMS_Spring.modules.system.dtos.responses;
+package com.ou.LMS_Spring.modules.systems.dtos.responses;
 
 import java.time.LocalDateTime;
 

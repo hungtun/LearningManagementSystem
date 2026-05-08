@@ -18,6 +18,7 @@ import com.ou.LMS_Spring.Entities.Lesson;
 import com.ou.LMS_Spring.Entities.LessonAttachment;
 import com.ou.LMS_Spring.Entities.User;
 import com.ou.LMS_Spring.Services.BaseService;
+import com.ou.LMS_Spring.Services.CloudinaryService;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentAssignmentRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizQuestionRepository;
 import com.ou.LMS_Spring.modules.assessments.repositories.AssessmentQuizRepository;
@@ -43,7 +44,6 @@ import com.ou.LMS_Spring.modules.courses.repositories.LessonRepository;
 import com.ou.LMS_Spring.modules.courses.services.interfaces.ICourseService;
 import com.ou.LMS_Spring.modules.learnings.repositories.LessonDiscussionRepository;
 import com.ou.LMS_Spring.modules.learnings.repositories.LessonProgressRepository;
-import com.ou.LMS_Spring.modules.system.services.impl.CloudinaryService;
 import com.ou.LMS_Spring.modules.users.repositories.UserRepository;
 
 @Service
